@@ -1,5 +1,5 @@
 /**
- * Numbered markers implementation for OSRM Inspector
+ * Enhanced numbered markers implementation for OSRM Inspector
  * Adds custom numbered markers with time estimates
  */
 
@@ -15,6 +15,9 @@ function initNumberedMarkers() {
   // Clear any existing markers
   clearNumberedMarkers();
 
+  // Add styles for numbered markers if not already added
+  addNumberedMarkerStyles();
+
   // Add click handler to map
   if (window.map) {
     window.map.on("click", function (e) {
@@ -26,6 +29,10 @@ function initNumberedMarkers() {
         addNumberedMarker(e.latlng);
       }
     });
+  } else {
+    console.error(
+      "Map not initialized, can't add numbered markers click handler"
+    );
   }
 
   console.log("Numbered markers initialized");
@@ -36,6 +43,8 @@ function initNumberedMarkers() {
  * Add a numbered marker at the specified location
  */
 function addNumberedMarker(latlng, options = {}) {
+  console.log("Adding numbered marker at:", latlng);
+
   // Default options
   const defaults = {
     number: window.numberedMarkers.length + 1,
@@ -72,7 +81,12 @@ function addNumberedMarker(latlng, options = {}) {
   });
 
   // Add marker to map
-  marker.addTo(window.map);
+  if (window.map) {
+    marker.addTo(window.map);
+  } else {
+    console.error("Map not available, can't add marker");
+    return null;
+  }
 
   // Store marker number
   marker.markerNumber = settings.number;
@@ -190,7 +204,10 @@ function updateNumberedMarker(number, options = {}) {
 function updateWaypointFromMarker(number, latlng) {
   // Convert to OSRM format
   const osrmFormat = [latlng.lng, latlng.lat];
-  const coordString = FormatUtils.formatCoordinateString(osrmFormat);
+  const coordString =
+    typeof FormatUtils !== "undefined" && FormatUtils.formatCoordinateString
+      ? FormatUtils.formatCoordinateString(osrmFormat)
+      : `${osrmFormat[0].toFixed(6)},${osrmFormat[1].toFixed(6)}`;
 
   // Update corresponding input
   const inputs = document.querySelectorAll(".waypoint-input");
@@ -203,12 +220,15 @@ function updateWaypointFromMarker(number, latlng) {
     // Update waypoints list
     if (typeof updateWaypointsList === "function") {
       updateWaypointsList();
+    } else {
+      console.warn("updateWaypointsList function not available");
     }
 
     // Auto-route if enabled
+    const autoRouteToggle = document.getElementById("auto-route-toggle");
     if (
-      document.getElementById("auto-route-toggle") &&
-      document.getElementById("auto-route-toggle").checked &&
+      autoRouteToggle &&
+      autoRouteToggle.checked &&
       typeof findRouteWithMultipleWaypoints === "function"
     ) {
       findRouteWithMultipleWaypoints();
@@ -218,8 +238,57 @@ function updateWaypointFromMarker(number, latlng) {
 
     // If no input exists, we might need to add more waypoints
     // Make sure we have enough waypoint inputs
-    if (inputIndex >= inputs.length && typeof addNewWaypointUI === "function") {
-      addNewWaypointUI(number);
+    if (inputIndex >= inputs.length) {
+      ensureWaypointInputsExist(number);
+    }
+  }
+}
+
+/**
+ * Ensure there are enough waypoint inputs for the given marker number
+ */
+function ensureWaypointInputsExist(markerNumber) {
+  // Get current number of inputs
+  const inputs = document.querySelectorAll(".waypoint-input");
+
+  // Check if we need to add more waypoints
+  if (markerNumber > inputs.length) {
+    console.log(
+      `Need to add waypoints for marker ${markerNumber}, current inputs: ${inputs.length}`
+    );
+
+    // Update waypoint count slider if available
+    const waypointCountSlider = document.getElementById("waypoint-count");
+    if (waypointCountSlider) {
+      waypointCountSlider.value = Math.min(10, markerNumber);
+      const valueDisplay = document.getElementById("waypoint-count-value");
+      if (valueDisplay) {
+        valueDisplay.textContent = Math.min(10, markerNumber);
+      }
+
+      if (window.waypointState) {
+        window.waypointState.maxWaypoints = Math.min(10, markerNumber);
+      }
+
+      // Update the UI to match
+      if (typeof updateWaypointUI === "function") {
+        updateWaypointUI(markerNumber);
+      } else if (typeof addNewWaypoint === "function") {
+        // Just add new waypoints until we have enough
+        const neededWaypoints = markerNumber - inputs.length;
+
+        for (let i = 0; i < neededWaypoints; i++) {
+          addNewWaypoint();
+        }
+      } else {
+        console.error(
+          "Cannot add waypoints - neither updateWaypointUI nor addNewWaypoint functions available"
+        );
+      }
+    } else {
+      console.warn(
+        "Waypoint count slider not found, cannot update waypoint count"
+      );
     }
   }
 }
@@ -263,11 +332,13 @@ function highlightWaypointInput(number) {
  */
 function clearNumberedMarkers() {
   // Remove each marker from the map
-  window.numberedMarkers.forEach((marker) => {
-    if (window.map) {
-      window.map.removeLayer(marker);
-    }
-  });
+  if (window.numberedMarkers && window.numberedMarkers.length > 0) {
+    window.numberedMarkers.forEach((marker) => {
+      if (window.map && marker) {
+        window.map.removeLayer(marker);
+      }
+    });
+  }
 
   // Clear array
   window.numberedMarkers = [];
@@ -278,6 +349,7 @@ function clearNumberedMarkers() {
  */
 function updateNumberedMarkersWithRouteData(routeData) {
   if (!routeData || !routeData.routes || routeData.routes.length === 0) {
+    console.warn("No route data to update markers with");
     return;
   }
 
@@ -322,43 +394,8 @@ function updateNumberedMarkersWithRouteData(routeData) {
 }
 
 /**
- * Add new waypoint UI for a specific marker number
+ * Add CSS for numbered markers
  */
-function addNewWaypointUI(markerNumber) {
-  // Get current number of inputs
-  const inputs = document.querySelectorAll(".waypoint-input");
-
-  // Check if we need to add more waypoints
-  if (markerNumber > inputs.length) {
-    // Update waypoint count slider
-    const waypointCountSlider = document.getElementById("waypoint-count");
-    if (waypointCountSlider) {
-      waypointCountSlider.value = Math.min(10, markerNumber);
-      document.getElementById("waypoint-count-value").textContent = Math.min(
-        10,
-        markerNumber
-      );
-      window.waypointState.maxWaypoints = Math.min(10, markerNumber);
-    }
-
-    // Call the addNewWaypoint function to add new inputs
-    if (typeof addNewWaypoint === "function") {
-      // Calculate how many new waypoints we need
-      const neededWaypoints = markerNumber - inputs.length;
-
-      // Add them
-      for (let i = 0; i < neededWaypoints; i++) {
-        addNewWaypoint();
-      }
-    } else {
-      console.warn(
-        "Cannot add waypoints - addNewWaypoint function not available"
-      );
-    }
-  }
-}
-
-// Add CSS for numbered markers
 function addNumberedMarkerStyles() {
   // Check if styles already exist
   if (document.getElementById("numbered-marker-styles")) return;
@@ -438,9 +475,6 @@ function addNumberedMarkerStyles() {
   // Add to document
   document.head.appendChild(style);
 }
-
-// Call this on initialization
-addNumberedMarkerStyles();
 
 // Export functions to global scope
 window.initNumberedMarkers = initNumberedMarkers;

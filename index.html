@@ -13,6 +13,8 @@
       href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
     />
     <link rel="stylesheet" href="/styles/modern-styles.css" />
+    <!-- PRE-INITIALIZATION FIX - MUST BE FIRST -->
+    <script src="/js/pre-init-fix.js"></script>
   </head>
   <body>
     <div id="app">
@@ -201,7 +203,7 @@
       </div>
     </div>
 
-    <!-- Scripts - Perhatikan urutan loading -->
+    <!-- Scripts -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.js"></script>
 
     <!-- 1. Load configuration first -->
@@ -212,15 +214,16 @@
     <script src="/js/utils/csv-parser.js"></script>
 
     <!-- 3. Load core component modules -->
-    <script src="/js/minimal-map.js"></script>
-    <script src="/js/minimal-routing.js"></script>
-    <script src="/js/minimal-debug.js"></script>
+    <script src="/js/enhanced-map.js"></script>
+    <script src="/js/full-routing.js"></script>
+    <script src="/js/debug.js"></script>
 
     <!-- 4. Load enhancement modules -->
     <script src="/js/waypoint-handler.js"></script>
     <script src="/js/url-handler.js"></script>
+    <script src="/js/numbered-marker.js"></script>
 
-    <!-- 5. Load main application entry point last -->
+    <!-- 5. Load main application entry point -->
     <script src="/js/enhanced-app.js"></script>
 
     <!-- Troubleshooting Shim - Add before </body> -->
