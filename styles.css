@@ -1110,3 +1110,68 @@ body {
     transform: rotate(360deg);
   }
 }
+/* Time-dependent routing UI improvements */
+.time-input-container {
+  display: flex;
+  gap: 8px;
+  width: 100%;
+  margin-bottom: 10px;
+}
+
+.time-input-container input[type="datetime-local"] {
+  flex: 1;
+  min-width: 0; /* This helps prevent the input from exceeding its container */
+  padding: 8px 10px;
+  border: 1px solid var(--gray-300);
+  border-radius: var(--border-radius);
+  font-size: var(--font-size-sm);
+}
+
+.time-input-container .btn-sm {
+  white-space: nowrap;
+  padding: 8px 12px;
+  font-size: 12px;
+  min-width: 80px; /* Ensure minimum width for the button */
+}
+
+/* Time toggle improvements */
+.time-toggle {
+  margin-top: 8px;
+  margin-bottom: 12px;
+  display: flex;
+  align-items: center;
+}
+
+/* CURB options improvements */
+.curb-options {
+  margin-bottom: 15px;
+  padding-top: 5px;
+  border-top: 1px solid var(--gray-200);
+}
+
+.curb-warning {
+  margin-top: 5px;
+  font-size: 11px;
+  color: var(--danger-color);
+  padding: 8px;
+  background-color: rgba(249, 65, 68, 0.1);
+  border-radius: var(--border-radius-sm);
+}
+
+/* Make inputs resize properly */
+.form-control {
+  max-width: 100%;
+  box-sizing: border-box;
+}
+
+/* Responsive adjustments for smaller screens */
+@media (max-width: 400px) {
+  .time-input-container {
+    flex-direction: column;
+    gap: 5px;
+  }
+
+  .time-input-container .btn-sm {
+    align-self: flex-start;
+  }
+}

@@ -135,14 +135,32 @@ function getReadableInstruction(maneuver) {
   return instruction;
 }
 
-// Show loading indicator
+// Show loading indicator using SweetAlert2
+let loadingDialog = null;
+
 function showLoading() {
-  document.getElementById("loading-indicator").classList.add("active");
+  // Close any existing dialog first
+  if (loadingDialog) {
+    loadingDialog.close();
+  }
+
+  loadingDialog = Swal.fire({
+    title: "Processing...",
+    html: '<div class="spinner" style="margin: 0 auto;"></div>',
+    showConfirmButton: false,
+    allowOutsideClick: false,
+    didOpen: () => {
+      Swal.showLoading();
+    },
+  });
 }
 
 // Hide loading indicator
 function hideLoading() {
-  document.getElementById("loading-indicator").classList.remove("active");
+  if (loadingDialog) {
+    loadingDialog.close();
+    loadingDialog = null;
+  }
 }
 
 // Generate random color for debug visualization

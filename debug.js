@@ -97,6 +97,7 @@ async function toggleDebugNodes() {
     }
   } catch (error) {
     console.error("Error fetching nodes:", error);
+    showError("Error fetching nodes. See console for details.");
   } finally {
     hideLoading();
   }
@@ -133,6 +134,7 @@ async function toggleDebugEdges() {
     }
   } catch (error) {
     console.error("Error displaying edges:", error);
+    showError("Error displaying edges. See console for details.");
   } finally {
     hideLoading();
   }
@@ -161,6 +163,7 @@ async function toggleDebugCells() {
     simulateDebugCells();
   } catch (error) {
     console.error("Error displaying cells:", error);
+    showError("Error displaying cells. See console for details.");
   } finally {
     hideLoading();
   }
@@ -187,9 +190,7 @@ function toggleDebugTurns() {
   if (routeData && routeData.routes && routeData.routes.length > 0) {
     addDebugTurns(routeData.routes[0]);
   } else {
-    alert(
-      "Tidak ada rute yang ditampilkan. Silakan cari rute terlebih dahulu."
-    );
+    showWarning("No route is displayed. Please search for a route first.");
     debugStatus.turns = false;
     toggleDebugButton("btn-show-turns", false);
   }
@@ -229,7 +230,7 @@ function toggleDebugSpeed() {
       // Safe check for legs
       if (!route.legs || route.legs.length === 0) {
         console.warn("Route has no legs, cannot visualize speed");
-        alert("Cannot visualize speed: route has no leg data.");
+        showWarning("Cannot visualize speed: route has no leg data.");
         debugStatus.speed = false;
         toggleDebugButton("btn-show-speed", false);
         hideLoading();
@@ -241,18 +242,20 @@ function toggleDebugSpeed() {
         addDebugSpeed(route);
       } catch (speedError) {
         console.error("Error in speed visualization:", speedError);
-        alert("Error displaying speed visualization. See console for details.");
+        showError(
+          "Error displaying speed visualization. See console for details."
+        );
         debugStatus.speed = false;
         toggleDebugButton("btn-show-speed", false);
       }
     } else {
-      alert("No route is displayed. Please search for a route first.");
+      showWarning("No route is displayed. Please search for a route first.");
       debugStatus.speed = false;
       toggleDebugButton("btn-show-speed", false);
     }
   } catch (error) {
     console.error("Error displaying speed:", error);
-    alert("Error displaying speed visualization. See console for details.");
+    showError("Error displaying speed visualization. See console for details.");
     debugStatus.speed = false;
     toggleDebugButton("btn-show-speed", false);
   } finally {
@@ -281,9 +284,7 @@ function toggleDebugNames() {
   if (routeData && routeData.routes && routeData.routes.length > 0) {
     addDebugNames(routeData.routes[0]);
   } else {
-    alert(
-      "Tidak ada rute yang ditampilkan. Silakan cari rute terlebih dahulu."
-    );
+    showWarning("No route is displayed. Please search for a route first.");
     debugStatus.names = false;
     toggleDebugButton("btn-show-names", false);
   }
@@ -306,14 +307,23 @@ function toggleDebugButton(buttonId, isActive) {
  * Bersihkan semua visualisasi debug
  */
 function clearAllDebugVisualization() {
-  // Reset semua status
-  Object.keys(debugStatus).forEach((key) => {
-    debugStatus[key] = false;
-    toggleDebugButton(`btn-show-${key}`, false);
-  });
+  showConfirmation(
+    "Are you sure you want to clear all debug visualizations?",
+    "Confirm Clear",
+    function () {
+      // Reset semua status
+      Object.keys(debugStatus).forEach((key) => {
+        debugStatus[key] = false;
+        toggleDebugButton(`btn-show-${key}`, false);
+      });
 
-  // Clear semua layer
-  clearAllDebugLayers();
+      // Clear semua layer
+      clearAllDebugLayers();
+
+      // Show success toast
+      showToast("All debug visualizations cleared", "success");
+    }
+  );
 }
 
 function clearDebugLayer(layerName) {
@@ -355,6 +365,7 @@ async function fetchAndDisplayNearestNodes(coordinateString, radius = 1000) {
     console.error("Error fetching nearest nodes:", error);
     // Jika gagal, tampilkan simulasi nodes
     simulateDebugNodes();
+    showWarning("Could not fetch real nodes, showing simulated nodes instead");
   }
 }
 
@@ -364,6 +375,7 @@ async function fetchAndDisplayNearestNodes(coordinateString, radius = 1000) {
 async function extractAndDisplayRouteEdges(route) {
   if (!route || !route.legs) {
     simulateDebugEdges();
+    showWarning("Route has no leg data, showing simulated edges instead");
     return;
   }
 

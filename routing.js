@@ -175,102 +175,18 @@ function updateAvailableProfiles(currentProfile) {
  * Allow user to edit profile
  */
 function editProfile() {
-  // Create a dropdown with known profiles and option to enter custom one
-  const profileSelectHTML = `
-    <select id="profile-select" class="profile-select">
-      <option value="custom">Custom profile...</option>
-      ${availableProfiles
-        .map((profile) => `<option value="${profile}">${profile}</option>`)
-        .join("")}
-    </select>
-    <div id="custom-profile-container" style="display:none; margin-top:5px;">
-      <input type="text" id="custom-profile-input" class="custom-profile-input" 
-             placeholder="Enter custom profile name">
-    </div>
-    <div style="margin-top:10px; display:flex; gap:5px;">
-      <button id="btn-save-profile" class="btn btn-primary btn-sm">Save</button>
-      <button id="btn-cancel-profile" class="btn btn-secondary btn-sm">Cancel</button>
-    </div>
-  `;
-
-  // Create modal for editing
-  const modal = document.createElement("div");
-  modal.className = "modal";
-  modal.innerHTML = `
-    <div class="modal-content">
-      <div class="modal-header">
-        <h3>Edit Profile</h3>
-        <button class="modal-close">&times;</button>
-      </div>
-      <div class="modal-body">
-        <p>Select from known profiles or enter a custom one:</p>
-        ${profileSelectHTML}
-      </div>
-    </div>
-  `;
-
-  // Add modal to body
-  document.body.appendChild(modal);
-
-  // Show modal
-  setTimeout(() => {
-    modal.classList.add("show");
-  }, 10);
-
-  // Get current profile
-  const currentProfile = document.querySelector(".form-group[data-profile]")
-    .dataset.profile;
-
-  // Set current profile as selected if available
-  const selectElement = document.getElementById("profile-select");
-  if (availableProfiles.includes(currentProfile)) {
-    selectElement.value = currentProfile;
-  }
-
-  // Set up event listeners
-  selectElement.addEventListener("change", function () {
-    const customContainer = document.getElementById("custom-profile-container");
-    if (this.value === "custom") {
-      customContainer.style.display = "block";
-      document.getElementById("custom-profile-input").focus();
-    } else {
-      customContainer.style.display = "none";
-    }
-  });
-
-  // Close button
-  document.querySelector(".modal-close").addEventListener("click", function () {
-    modal.classList.remove("show");
-    setTimeout(() => {
-      document.body.removeChild(modal);
-    }, 300);
-  });
-
-  // Save button
-  document
-    .getElementById("btn-save-profile")
-    .addEventListener("click", function () {
-      let newProfile;
-
-      if (selectElement.value === "custom") {
-        newProfile = document
-          .getElementById("custom-profile-input")
-          .value.trim();
-        if (!newProfile) {
-          alert("Please enter a custom profile name");
-          return;
-        }
-
-        // Add to available profiles
-        if (!availableProfiles.includes(newProfile)) {
-          availableProfiles.push(newProfile);
-          localStorage.setItem(
-            "availableProfiles",
-            JSON.stringify(availableProfiles)
-          );
-        }
-      } else {
-        newProfile = selectElement.value;
+  // Use SweetAlert profile editor instead of custom modal
+  showProfileEditor(
+    availableProfiles,
+    document.querySelector(".form-group[data-profile]").dataset.profile,
+    function (newProfile) {
+      // Add to available profiles if it's a new one
+      if (!availableProfiles.includes(newProfile)) {
+        availableProfiles.push(newProfile);
+        localStorage.setItem(
+          "availableProfiles",
+          JSON.stringify(availableProfiles)
+        );
       }
 
       // Update display and data attribute
@@ -284,12 +200,6 @@ function editProfile() {
         profileSpan.textContent = newProfile;
       }
 
-      // Close modal
-      modal.classList.remove("show");
-      setTimeout(() => {
-        document.body.removeChild(modal);
-      }, 300);
-
       // Optionally update the route if one exists
       if (
         currentRouteData &&
@@ -298,17 +208,11 @@ function editProfile() {
       ) {
         findRouteWithMultipleWaypoints();
       }
-    });
 
-  // Cancel button
-  document
-    .getElementById("btn-cancel-profile")
-    .addEventListener("click", function () {
-      modal.classList.remove("show");
-      setTimeout(() => {
-        document.body.removeChild(modal);
-      }, 300);
-    });
+      // Show success toast
+      showToast("Profile updated successfully", "success");
+    }
+  );
 }
 
 /**
@@ -619,6 +523,9 @@ function addNewWaypoint() {
   // Update waypoints list
   updateWaypointsList();
 
+  // Show success toast
+  showToast("New waypoint added", "success");
+
   return newWaypoint;
 }
 
@@ -626,20 +533,37 @@ function addNewWaypoint() {
  * Remove a waypoint
  */
 function removeWaypoint(waypointElement) {
-  const container = waypointElement.parentNode;
-  const previousSeparator = waypointElement.previousElementSibling;
+  showConfirmation(
+    "Are you sure you want to remove this waypoint?",
+    "Confirm Remove",
+    function () {
+      const container = waypointElement.parentNode;
+      const previousSeparator = waypointElement.previousElementSibling;
 
-  // Remove the waypoint and its separator
-  container.removeChild(waypointElement);
-  if (
-    previousSeparator &&
-    previousSeparator.className === "waypoint-separator"
-  ) {
-    container.removeChild(previousSeparator);
-  }
+      // Remove the waypoint and its separator
+      container.removeChild(waypointElement);
+      if (
+        previousSeparator &&
+        previousSeparator.className === "waypoint-separator"
+      ) {
+        container.removeChild(previousSeparator);
+      }
 
-  // Update waypoints list
-  updateWaypointsList();
+      // Update waypoints list
+      updateWaypointsList();
+
+      // Show success toast
+      showToast("Waypoint removed", "success");
+
+      // Auto-refresh route if desired
+      if (
+        document.getElementById("auto-update-route") &&
+        document.getElementById("auto-update-route").checked
+      ) {
+        findRouteWithMultipleWaypoints();
+      }
+    }
+  );
 }
 
 /**
@@ -761,7 +685,7 @@ function parseWaypointsFile(contents, filename) {
   const lines = contents.split(/\r?\n/).filter((line) => line.trim() !== "");
 
   if (lines.length < 2) {
-    alert("File must contain at least 2 waypoints");
+    showWarning("File must contain at least 2 waypoints");
     return;
   }
 
@@ -801,7 +725,7 @@ function parseWaypointsFile(contents, filename) {
 
   // Check if we have enough lines after skipping header
   if (lines.length - startIndex < 2) {
-    alert("File must contain at least 2 waypoints after header");
+    showWarning("File must contain at least 2 waypoints after header");
     return;
   }
 
@@ -844,7 +768,7 @@ function parseWaypointsFile(contents, filename) {
   }
 
   if (validLines.length < 2) {
-    alert("Could not find at least 2 valid waypoints in the file");
+    showWarning("Could not find at least 2 valid waypoints in the file");
     return;
   }
 
@@ -877,7 +801,7 @@ function parseWaypointsFile(contents, filename) {
   // Add markers for all waypoints
   addMarkersFromInputs();
 
-  alert(
+  showSuccess(
     `Successfully imported ${validLines.length} waypoints from ${filename}`
   );
 }
@@ -950,7 +874,7 @@ function addTimeDependentRoutingUI() {
   infoIcon.title =
     "Time-dependent routing uses historical traffic data to calculate travel times based on the selected departure time. This requires traffic data to be loaded in the OSRM backend.";
 
-  document.querySelector(".toggle-label").appendChild(infoIcon);
+  document.querySelector(".time-toggle .toggle-label").appendChild(infoIcon);
 }
 
 /**
@@ -969,6 +893,9 @@ function setCurrentTimeAsDeparture() {
   ).value = `${year}-${month}-${day}T${hours}:${minutes}`;
 
   console.log(`Set departure time to current time: ${now.toLocaleString()}`);
+
+  // Show toast notification
+  showToast("Current time set as departure time", "success");
 }
 
 /**
@@ -998,7 +925,7 @@ function addCurbOptions() {
         Enable CURB restriction
         <i class="fa fa-info-circle" title="CURB restrictions not supported by current OSRM backend version. This feature is disabled."></i>
       </label>
-      <div class="curb-warning" style="margin-top:5px; font-size:11px; color:#e74c3c;">
+      <div class="curb-warning" style="margin-top:5px;">
         <i class="fa fa-exclamation-triangle"></i> 
         CURB feature not available with this OSRM backend version.
       </div>
@@ -1113,7 +1040,7 @@ function copyRoutingUrl() {
   const urlInput = document.getElementById("routing-url-display");
 
   if (!urlInput || !urlInput.value) {
-    alert("No routing URL available to copy");
+    showWarning("No routing URL available to copy");
     return;
   }
 
@@ -1127,29 +1054,16 @@ function copyRoutingUrl() {
     navigator.clipboard
       .writeText(urlInput.value)
       .then(() => {
-        // Show success feedback
-        const copyBtn = document.getElementById("btn-copy-url");
-        const originalText = copyBtn.innerHTML;
-        copyBtn.innerHTML = '<i class="fa fa-check"></i> Copied!';
-        setTimeout(() => {
-          copyBtn.innerHTML = originalText;
-        }, 2000);
+        showToast("URL copied to clipboard", "success");
       })
       .catch((err) => {
         // Fallback to document.execCommand
         document.execCommand("copy");
-
-        // Show success feedback
-        const copyBtn = document.getElementById("btn-copy-url");
-        const originalText = copyBtn.innerHTML;
-        copyBtn.innerHTML = '<i class="fa fa-check"></i> Copied!';
-        setTimeout(() => {
-          copyBtn.innerHTML = originalText;
-        }, 2000);
+        showToast("URL copied to clipboard", "success");
       });
   } catch (err) {
     console.error("Failed to copy URL: ", err);
-    alert("Failed to copy URL. Please try selecting and copying manually.");
+    showError("Failed to copy URL. Please try selecting and copying manually.");
   }
 }
 
@@ -1157,11 +1071,9 @@ function copyRoutingUrl() {
  * Prompt user to enter a routing URL to load
  */
 function promptLoadUrl() {
-  const url = prompt("Enter OSRM routing URL to load:");
-
-  if (!url) return;
-
-  loadRoutingUrl(url);
+  showUrlPrompt(function (url) {
+    loadRoutingUrl(url);
+  });
 }
 
 /**
@@ -1169,7 +1081,7 @@ function promptLoadUrl() {
  */
 async function loadRoutingUrl(url) {
   if (!url || !url.includes("/route/v1/")) {
-    alert("Invalid OSRM routing URL format");
+    showError("Invalid OSRM routing URL format");
     return;
   }
 
@@ -1262,9 +1174,12 @@ async function loadRoutingUrl(url) {
     // Store the loaded URL
     currentRoutingUrl = url;
     updateRoutingUrlDisplay();
+
+    // Show success message
+    showSuccess("URL loaded successfully");
   } catch (error) {
     console.error("Error loading routing URL:", error);
-    alert(`Error loading routing URL: ${error.message}`);
+    showError(`Error loading routing URL: ${error.message}`);
   } finally {
     hideLoading();
   }
@@ -1278,7 +1193,7 @@ async function findRouteWithMultipleWaypoints() {
   updateWaypointsList();
 
   if (waypointsList.length < 2) {
-    alert("Please specify at least a start and end point");
+    showWarning("Please specify at least a start and end point");
     return;
   }
 
@@ -1419,6 +1334,7 @@ async function findRouteWithMultipleWaypoints() {
             addMarkersFromInputs();
 
             hideLoading();
+            showSuccess(`Route found using alternate profile: ${altProfile}`);
             return; // Exit the function since we've handled the request
           }
         } catch (altError) {
@@ -1500,6 +1416,9 @@ async function findRouteWithMultipleWaypoints() {
         // Insert at the top of route summary
         const routeSummary = document.getElementById("route-summary");
         routeSummary.insertBefore(warningEl, routeSummary.firstChild);
+
+        // Show warning toast
+        showToast("Time-dependent routing may not be supported", "warning");
       }
     }
 
@@ -1515,12 +1434,18 @@ async function findRouteWithMultipleWaypoints() {
 
     // Add markers for all waypoints
     addMarkersFromInputs();
+
+    // Show success toast
+    showToast("Route found successfully", "success");
   } catch (error) {
     console.error("Error:", error);
     document.getElementById("route-summary").innerHTML = `
       <p class="error-message">Error: ${error.message}</p>
     `;
     document.getElementById("route-steps").innerHTML = "";
+
+    // Show error message
+    showError(`Route finding failed: ${error.message}`);
   } finally {
     hideLoading();
   }
@@ -1793,63 +1718,92 @@ function displayRouteSteps(route) {
  * Clear route and waypoints
  */
 function clearRouteAndWaypoints() {
-  clearRoute();
-  clearWaypoints();
+  showConfirmation(
+    "Are you sure you want to clear all waypoints and routes?",
+    "Confirm Clear",
+    function () {
+      clearRoute();
+      clearWaypoints();
 
-  // Clear input fields
-  document.getElementById("start-point").value = "";
-  document.getElementById("end-point").value = "";
+      // Clear input fields
+      document.getElementById("start-point").value = "";
+      document.getElementById("end-point").value = "";
 
-  // Clear via waypoints
-  const viaPoints = document.querySelectorAll(".waypoint.via");
-  viaPoints.forEach((point) => {
-    removeWaypoint(point);
-  });
+      // Clear via waypoints
+      const viaPoints = document.querySelectorAll(".waypoint.via");
+      viaPoints.forEach((point) => {
+        const container = point.parentNode;
+        const previousSeparator = point.previousElementSibling;
 
-  // Clear route info
-  document.getElementById("route-summary").innerHTML =
-    '<p class="no-route">No route is currently displayed.</p>';
-  document.getElementById("route-steps").innerHTML = "";
+        // Remove the waypoint and its separator
+        container.removeChild(point);
+        if (
+          previousSeparator &&
+          previousSeparator.className === "waypoint-separator"
+        ) {
+          container.removeChild(previousSeparator);
+        }
+      });
 
-  // Reset current route data
-  currentRouteData = null;
+      // Clear route info
+      document.getElementById("route-summary").innerHTML =
+        '<p class="no-route">No route is currently displayed.</p>';
+      document.getElementById("route-steps").innerHTML = "";
 
-  // Reset current routing URL
-  currentRoutingUrl = "";
-  updateRoutingUrlDisplay();
+      // Reset current route data
+      currentRouteData = null;
 
-  // Reset waypoints list
-  waypointsList = [];
+      // Reset current routing URL
+      currentRoutingUrl = "";
+      updateRoutingUrlDisplay();
+
+      // Reset waypoints list
+      waypointsList = [];
+
+      // Show success toast
+      showToast("Route and waypoints cleared", "success");
+    }
+  );
 }
 
 /**
  * Clear start point
  */
 function clearStartPoint() {
-  document.getElementById("start-point").value = "";
+  showConfirmation("Clear start point?", "Confirm", function () {
+    document.getElementById("start-point").value = "";
 
-  if (markerStart) {
-    mapLayers.waypoints.removeLayer(markerStart);
-    markerStart = null;
-  }
+    if (markerStart) {
+      mapLayers.waypoints.removeLayer(markerStart);
+      markerStart = null;
+    }
 
-  // Update waypoints list
-  updateWaypointsList();
+    // Update waypoints list
+    updateWaypointsList();
+
+    // Show toast
+    showToast("Start point cleared", "success");
+  });
 }
 
 /**
  * Clear end point
  */
 function clearEndPoint() {
-  document.getElementById("end-point").value = "";
+  showConfirmation("Clear end point?", "Confirm", function () {
+    document.getElementById("end-point").value = "";
 
-  if (markerEnd) {
-    mapLayers.waypoints.removeLayer(markerEnd);
-    markerEnd = null;
-  }
+    if (markerEnd) {
+      mapLayers.waypoints.removeLayer(markerEnd);
+      markerEnd = null;
+    }
 
-  // Update waypoints list
-  updateWaypointsList();
+    // Update waypoints list
+    updateWaypointsList();
+
+    // Show toast
+    showToast("End point cleared", "success");
+  });
 }
 
 /**

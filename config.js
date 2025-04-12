@@ -7,8 +7,8 @@ const CONFIG = {
 
   // Default Map Settings
   map: {
-    center: [-6.2, 106.8], // Jakarta sebagai default
-    zoom: 12,
+    center: [-0.084039, 106.7709673], // Changed center to requested coordinates
+    zoom: 5, // Increased zoom to show wider area view of Asia and Australia
     maxZoom: 19,
     minZoom: 2,
   },
