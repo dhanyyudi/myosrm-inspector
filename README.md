@@ -15,6 +15,98 @@ OSRM Inspector is a modern frontend application for examining, testing, and visu
 - **Import/Export**: Import waypoints from CSV files and copy/paste routing URLs
 - **Modern UI**: Responsive and intuitive user interface with a modern blue theme
 
+## 📝 Usage Guide
+
+### Basics
+
+1. **Finding a Route**:
+
+   - Click on the map to set a starting point (or enter coordinates in the "Start Point" input)
+   - Click again to set an end point (or enter coordinates in the "End Point" input)
+   - Click the "Find Route" button to generate the route
+     ![OSRM Inspector Simple Routing](./images/example-routing.png)
+
+2. **Adding Additional Waypoints**:
+
+   - Click the "Add Waypoint" button to add a new waypoint
+   - Click on the map to set the waypoint position (or enter coordinates manually)
+     ![OSRM Inspector Complex Routing](./images/line-segment-routing.png)
+
+3. **Working with Profiles**:
+   - Select a routing profile (car, bike, foot, etc.) from the dropdown
+   - For custom profiles, click the edit icon and enter the profile name
+
+### Advanced Features
+
+1. **Importing Waypoints**:
+
+   - Click the "Import CSV/TXT" button
+   - Select a file with format: (latitude,longitude) or (longitude,latitude)
+     ![OSRM Inspector Waypoints Import](./images/import-waypoints.png)
+
+2. **Debug Visualization**:
+
+   - Use the "Debug & Visualization" panel to display road network elements:
+     - Nodes: Display network nodes
+     - Edges: Display edges/roads
+     - Cells: Display partition cells
+     - Turns: Display turn instructions
+     - Speed: Display speed information
+     - Road Names: Display road names
+       ![OSRM Inspector Debug](./images/interactive-debug.png)
+
+3. **Copy/Load Routing URL**:
+   - After a route is generated, the routing URL will be displayed in the "Route Information" panel
+   - Use the "Copy" button to copy the URL
+   - The "Load URL" button allows loading a route from an OSRM URL
+     ![OSRM Inspector Copy & Load URL](./images/copy-load-osrm-url.png)
+
+## 🧩 Code Structure
+
+```
+myosrm-inspector/
+├── app.js                 # Application entry point
+├── config.js              # Application configuration
+├── debug.js               # Debug visualization
+├── index.html             # Main HTML structure
+├── map.js                 # Map management and visual layers
+├── routing.js             # Routing functions
+├── styles.css             # CSS stylesheet
+├── sweetalert-helpers.js  # UI dialog helpers
+└── utils.js               # Common utility functions
+```
+
+## 🔧 Configuration Options
+
+Here are some of the main configuration options that can be customized:
+
+| Option             | Description                             | Default Value                 |
+| ------------------ | --------------------------------------- | ----------------------------- |
+| osrmBackendUrl     | URL for the OSRM backend                | "/api"                        |
+| map.center         | Initial map center [lng, lat]           | [-0.084039, 106.7709673]      |
+| map.zoom           | Initial map zoom level                  | 5                             |
+| routing.colors     | Colors for routes based on profile      | Object with color definitions |
+| routing.lineWeight | Route line thickness                    | 6                             |
+| debug.maxNodes     | Maximum number of debug nodes displayed | 1000                          |
+
+## 🔍 Troubleshooting
+
+### "No Route Found" Error
+
+- Ensure your OSRM backend is running and accessible
+- Check if your start and end points are within the coverage of the map data loaded into OSRM
+- Try a different routing profile (e.g., from "driving" to "car")
+
+### Debug Visualization Issues
+
+- Debug features require an OSRM backend with supported endpoints
+- Some visualizations may not be available depending on the OSRM version and compatibility
+
+### Container Cannot Connect to OSRM Backend
+
+- Make sure the backend URL is correctly configured in the environment variables or config.js
+- If running both containers on the same host, use the Docker container name or Docker network IP for connection
+
 ## 🚀 Getting Started with Docker
 
 ### Prerequisites
@@ -198,98 +290,6 @@ After the container is running, open a web browser and navigate to:
 ```
 http://localhost:9966
 ```
-
-## 📝 Usage Guide
-
-### Basics
-
-1. **Finding a Route**:
-
-   - Click on the map to set a starting point (or enter coordinates in the "Start Point" input)
-   - Click again to set an end point (or enter coordinates in the "End Point" input)
-   - Click the "Find Route" button to generate the route
-     ![OSRM Inspector Simple Routing](./images/example-routing.png)
-
-2. **Adding Additional Waypoints**:
-
-   - Click the "Add Waypoint" button to add a new waypoint
-   - Click on the map to set the waypoint position (or enter coordinates manually)
-     ![OSRM Inspector Complex Routing](./images/line-segment-routing.png)
-
-3. **Working with Profiles**:
-   - Select a routing profile (car, bike, foot, etc.) from the dropdown
-   - For custom profiles, click the edit icon and enter the profile name
-
-### Advanced Features
-
-1. **Importing Waypoints**:
-
-   - Click the "Import CSV/TXT" button
-   - Select a file with format: (latitude,longitude) or (longitude,latitude)
-     ![OSRM Inspector Waypoints Import](./images/import-waypoints.png)
-
-2. **Debug Visualization**:
-
-   - Use the "Debug & Visualization" panel to display road network elements:
-     - Nodes: Display network nodes
-     - Edges: Display edges/roads
-     - Cells: Display partition cells
-     - Turns: Display turn instructions
-     - Speed: Display speed information
-     - Road Names: Display road names
-       ![OSRM Inspector Debug](./images/interactive-debug.png)
-
-3. **Copy/Load Routing URL**:
-   - After a route is generated, the routing URL will be displayed in the "Route Information" panel
-   - Use the "Copy" button to copy the URL
-   - The "Load URL" button allows loading a route from an OSRM URL
-     ![OSRM Inspector Copy & Load URL](./images/copy-load-osrm-url.png)
-
-## 🧩 Code Structure
-
-```
-myosrm-inspector/
-├── app.js                 # Application entry point
-├── config.js              # Application configuration
-├── debug.js               # Debug visualization
-├── index.html             # Main HTML structure
-├── map.js                 # Map management and visual layers
-├── routing.js             # Routing functions
-├── styles.css             # CSS stylesheet
-├── sweetalert-helpers.js  # UI dialog helpers
-└── utils.js               # Common utility functions
-```
-
-## 🔧 Configuration Options
-
-Here are some of the main configuration options that can be customized:
-
-| Option             | Description                             | Default Value                 |
-| ------------------ | --------------------------------------- | ----------------------------- |
-| osrmBackendUrl     | URL for the OSRM backend                | "/api"                        |
-| map.center         | Initial map center [lng, lat]           | [-0.084039, 106.7709673]      |
-| map.zoom           | Initial map zoom level                  | 5                             |
-| routing.colors     | Colors for routes based on profile      | Object with color definitions |
-| routing.lineWeight | Route line thickness                    | 6                             |
-| debug.maxNodes     | Maximum number of debug nodes displayed | 1000                          |
-
-## 🔍 Troubleshooting
-
-### "No Route Found" Error
-
-- Ensure your OSRM backend is running and accessible
-- Check if your start and end points are within the coverage of the map data loaded into OSRM
-- Try a different routing profile (e.g., from "driving" to "car")
-
-### Debug Visualization Issues
-
-- Debug features require an OSRM backend with supported endpoints
-- Some visualizations may not be available depending on the OSRM version and compatibility
-
-### Container Cannot Connect to OSRM Backend
-
-- Make sure the backend URL is correctly configured in the environment variables or config.js
-- If running both containers on the same host, use the Docker container name or Docker network IP for connection
 
 ## 🤝 Contributing
 
