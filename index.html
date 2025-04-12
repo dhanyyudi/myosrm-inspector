@@ -87,25 +87,7 @@
                   </select>
                 </div>
 
-                <!-- Auto-update toggle -->
-                <div class="form-group draggable-options">
-                  <div class="toggle-container">
-                    <input
-                      type="checkbox"
-                      id="auto-update-route"
-                      class="toggle-checkbox"
-                      checked
-                    />
-                    <label for="auto-update-route" class="toggle-label">
-                      Auto-update route when dragging waypoints
-                      <i
-                        class="fa fa-info-circle"
-                        title="When enabled, the route will automatically update when you drag any waypoint marker on the map."
-                      ></i>
-                    </label>
-                  </div>
-                </div>
-
+                <!-- Auto-update toggle will be added here by JavaScript -->
                 <!-- Time selection will be added here by JavaScript -->
                 <!-- CURB options will be added here by JavaScript -->
               </div>
@@ -219,6 +201,9 @@
 
     <!-- Scripts -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.js"></script>
+    <!-- SweetAlert2 -->
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script src="sweetalert-helpers.js"></script>
     <script src="config.js"></script>
     <script src="utils.js"></script>
     <script src="map.js"></script>

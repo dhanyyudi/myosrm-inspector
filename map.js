@@ -287,42 +287,166 @@ function addViaMarker(latlng, inputId) {
 function displayRoute(routeData, profile = "driving") {
   clearRoute();
 
-  if (!routeData || !routeData.routes || routeData.routes.length === 0) return;
+  if (!routeData || !routeData.routes || routeData.routes.length === 0) {
+    console.log("No valid route data to display");
+    return;
+  }
 
   const route = routeData.routes[0];
+
+  // Debug the route data structure to help identify issues
+  console.log(
+    "Route data structure:",
+    JSON.stringify({
+      hasGeometry: !!route.geometry,
+      geometryType: route.geometry ? route.geometry.type : "none",
+      legCount: route.legs ? route.legs.length : 0,
+      hasCoordinates:
+        route.geometry && route.geometry.coordinates
+          ? route.geometry.coordinates.length
+          : 0,
+    })
+  );
 
   // Get base color based on profile
   const baseColor =
     CONFIG.routing.colors[profile] || CONFIG.routing.colors.driving;
 
-  // If the route has legs, display each leg with a different color
-  if (route.legs && route.legs.length > 1) {
-    // Generate a color palette based on the number of legs
-    const colors = generateColorPalette(baseColor, route.legs.length);
+  // Generate a color palette for the segments
+  const segmentCount = Math.max(waypointsList.length - 1, 1);
+  const colors = generateColorPalette(baseColor, segmentCount);
+
+  // Check if we need to split the overall route into segments
+  if (
+    route.geometry &&
+    route.geometry.type === "LineString" &&
+    route.geometry.coordinates &&
+    route.geometry.coordinates.length > 0 &&
+    waypointsList.length > 2
+  ) {
+    // Only split if we have via points
+
+    console.log(
+      `Splitting route into ${segmentCount} segments based on waypoints`
+    );
+
+    // We need to split the single route geometry into segments based on waypoints
+    const routeCoordinates = route.geometry.coordinates;
+
+    // Extract coordinates from waypoints
+    const waypointCoordinates = waypointsList
+      .map((wp) => {
+        const coords = parseCoordinateString(wp);
+        return coords ? [coords[0], coords[1]] : null;
+      })
+      .filter((coords) => coords !== null);
+
+    if (waypointCoordinates.length > 1) {
+      // Find the indices where the route passes through the waypoints
+      const waypointIndices = findWaypointIndicesInRoute(
+        routeCoordinates,
+        waypointCoordinates
+      );
+      console.log("Waypoint indices in route:", waypointIndices);
+
+      // Split the route into segments using these indices
+      if (waypointIndices.length >= 2) {
+        for (let i = 0; i < waypointIndices.length - 1; i++) {
+          const startIdx = waypointIndices[i];
+          const endIdx = waypointIndices[i + 1];
+
+          // Skip if invalid indices
+          if (startIdx === -1 || endIdx === -1 || startIdx >= endIdx) {
+            continue;
+          }
+
+          // Extract segment coordinates
+          const segmentCoords = routeCoordinates.slice(startIdx, endIdx + 1);
+
+          if (segmentCoords.length > 1) {
+            const segmentGeometry = {
+              type: "LineString",
+              coordinates: segmentCoords,
+            };
+
+            const segmentColor = colors[i % colors.length];
+
+            console.log(
+              `Adding segment ${i + 1} with ${
+                segmentCoords.length
+              } coordinates in color ${segmentColor}`
+            );
+
+            const segmentLine = L.geoJSON(segmentGeometry, {
+              style: {
+                color: segmentColor,
+                weight: CONFIG.routing.lineWeight,
+                opacity: CONFIG.routing.lineOpacity,
+                lineJoin: "round",
+                lineCap: "round",
+              },
+            });
+
+            mapLayers.route.addLayer(segmentLine);
+            routeLines.push(segmentLine);
+          }
+        }
+
+        // Add a legend to show which color corresponds to which segment
+        addRouteLegend(colors, waypointsList);
+      } else {
+        // Fallback to displaying the full route if we couldn't find waypoint indices
+        console.log("Couldn't find waypoint indices, displaying full route");
+        addFullRoute(route.geometry, baseColor);
+      }
+    } else {
+      // Not enough valid waypoint coordinates, display full route
+      console.log(
+        "Not enough valid waypoint coordinates, displaying full route"
+      );
+      addFullRoute(route.geometry, baseColor);
+    }
+  }
+  // Check if we have multiple legs to display
+  else if (route.legs && route.legs.length > 1) {
+    console.log(`Displaying ${route.legs.length} route legs`);
 
     // Add each leg with its own color
     route.legs.forEach((leg, index) => {
-      if (!leg.geometry) return;
+      if (!leg.geometry) {
+        console.log(`Leg ${index} has no geometry`);
+        return;
+      }
+
+      console.log(
+        `Adding leg ${index} with geometry type: ${leg.geometry.type}`
+      );
 
       const legColor = colors[index % colors.length];
 
-      const legLine = L.geoJSON(leg.geometry, {
-        style: {
-          color: legColor,
-          weight: CONFIG.routing.lineWeight,
-          opacity: CONFIG.routing.lineOpacity,
-          lineJoin: "round",
-          lineCap: "round",
-        },
-      });
+      try {
+        const legLine = L.geoJSON(leg.geometry, {
+          style: {
+            color: legColor,
+            weight: CONFIG.routing.lineWeight,
+            opacity: CONFIG.routing.lineOpacity,
+            lineJoin: "round",
+            lineCap: "round",
+          },
+        });
 
-      mapLayers.route.addLayer(legLine);
-      routeLines.push(legLine);
+        mapLayers.route.addLayer(legLine);
+        routeLines.push(legLine);
+      } catch (error) {
+        console.error(`Error displaying leg ${index}:`, error);
+      }
 
       // Add hover highlight for this leg's steps
       if (leg.steps) {
-        leg.steps.forEach((step) => {
-          if (step.geometry) {
+        leg.steps.forEach((step, stepIndex) => {
+          if (!step.geometry) return;
+
+          try {
             const stepLine = L.geoJSON(step.geometry, {
               style: {
                 color: legColor,
@@ -348,6 +472,11 @@ function displayRoute(routeData, profile = "driving") {
 
             mapLayers.route.addLayer(stepLine);
             routeLines.push(stepLine);
+          } catch (stepError) {
+            console.error(
+              `Error displaying step ${stepIndex} of leg ${index}:`,
+              stepError
+            );
           }
         });
       }
@@ -355,66 +484,190 @@ function displayRoute(routeData, profile = "driving") {
 
     // Add a legend to show which color corresponds to which segment
     addRouteLegend(colors, waypointsList);
-  } else {
-    // Use the default single color for routes with one or no legs
-    const routeLine = L.geoJSON(route.geometry, {
-      style: {
-        color: baseColor,
-        weight: CONFIG.routing.lineWeight,
-        opacity: CONFIG.routing.lineOpacity,
-        lineJoin: "round",
-        lineCap: "round",
-      },
-    });
+  }
+  // Otherwise display the full route as a single segment
+  else {
+    console.log("Displaying single route segment");
+    addFullRoute(route.geometry, baseColor);
+  }
 
-    mapLayers.route.addLayer(routeLine);
-    routeLines.push(routeLine);
+  // If no route lines were successfully created, exit early
+  if (routeLines.length === 0) {
+    console.error("No route lines could be created from the route data");
+    return;
+  }
 
-    // Add hover highlight if there are steps (same as original code)
-    if (route.legs && route.legs.length > 0) {
-      route.legs.forEach((leg) => {
-        if (leg.steps) {
-          leg.steps.forEach((step) => {
-            if (step.geometry) {
-              const stepLine = L.geoJSON(step.geometry, {
-                style: {
-                  color: baseColor,
-                  weight: CONFIG.routing.lineWeight + 2,
-                  opacity: 0,
-                  lineJoin: "round",
-                  lineCap: "round",
-                },
-              });
+  // Zoom to route bounds with improved error handling
+  try {
+    if (routeLines && routeLines.length > 0) {
+      const allRouteLines = L.featureGroup(routeLines);
 
-              // Add hover effect
-              stepLine.on("mouseover", function () {
-                this.setStyle({
-                  opacity: CONFIG.routing.highlightOpacity,
-                });
-              });
+      // Verify that bounds is valid before fitting
+      const bounds = allRouteLines.getBounds();
 
-              stepLine.on("mouseout", function () {
-                this.setStyle({
-                  opacity: 0,
-                });
-              });
+      // Check if bounds is valid by ensuring it has valid NW and SE corners
+      if (
+        bounds &&
+        bounds.getNorthWest() &&
+        bounds.getSouthEast() &&
+        !isNaN(bounds.getNorth()) &&
+        !isNaN(bounds.getSouth()) &&
+        !isNaN(bounds.getEast()) &&
+        !isNaN(bounds.getWest())
+      ) {
+        // Ensure bounds has dimension (not just one point)
+        const hasDimension =
+          bounds.getNorth() !== bounds.getSouth() ||
+          bounds.getEast() !== bounds.getWest();
 
-              mapLayers.route.addLayer(stepLine);
-              routeLines.push(stepLine);
-            }
+        if (hasDimension) {
+          console.log("Fitting map to valid bounds:", bounds);
+          map.fitBounds(bounds, {
+            padding: [50, 50],
           });
+        } else {
+          console.log("Bounds has no dimension, centering map instead");
+          // If bounds has no dimension (just one point), set view to that point
+          map.setView([bounds.getNorth(), bounds.getEast()], 12);
         }
-      });
+      } else {
+        console.warn("Invalid bounds, can't fit map to route");
+
+        // Fallback to coordinates from waypointsList if they're valid
+        if (waypointsList && waypointsList.length >= 2) {
+          try {
+            const startCoords = parseCoordinateString(waypointsList[0]);
+            const endCoords = parseCoordinateString(
+              waypointsList[waypointsList.length - 1]
+            );
+
+            if (startCoords && endCoords) {
+              // Create bounds from start and end coordinates
+              const fallbackBounds = L.latLngBounds(
+                [startCoords[1], startCoords[0]],
+                [endCoords[1], endCoords[0]]
+              );
+
+              // Ensure these bounds are valid
+              if (
+                fallbackBounds &&
+                !isNaN(fallbackBounds.getNorth()) &&
+                !isNaN(fallbackBounds.getSouth()) &&
+                !isNaN(fallbackBounds.getEast()) &&
+                !isNaN(fallbackBounds.getWest())
+              ) {
+                console.log("Using fallback bounds from waypoints");
+                map.fitBounds(fallbackBounds, {
+                  padding: [50, 50],
+                });
+              } else {
+                // If still not valid, zoom to start coordinate only
+                map.setView([startCoords[1], startCoords[0]], 12);
+              }
+            }
+          } catch (boundsError) {
+            console.error("Error creating fallback bounds:", boundsError);
+          }
+        }
+      }
+    } else {
+      console.warn("No route lines to display for bounds fitting");
+    }
+  } catch (error) {
+    console.error("Error fitting bounds:", error);
+
+    // Fallback: try to get the last waypoint from waypointsList
+    try {
+      if (waypointsList && waypointsList.length > 0) {
+        const firstWaypoint = parseCoordinateString(waypointsList[0]);
+        if (firstWaypoint) {
+          map.setView([firstWaypoint[1], firstWaypoint[0]], 12);
+        }
+      }
+    } catch (fallbackError) {
+      console.error("Fallback view error:", fallbackError);
     }
   }
 
-  // Zoom to route bounds
-  const allRouteLines = L.featureGroup(routeLines);
-  map.fitBounds(allRouteLines.getBounds(), {
-    padding: [50, 50],
+  return routeLines;
+}
+
+/**
+ * Helper function to add the full route as a single segment
+ */
+function addFullRoute(geometry, color) {
+  if (!geometry || !geometry.coordinates || geometry.coordinates.length < 2) {
+    console.error("Invalid geometry for full route");
+    return;
+  }
+
+  console.log(
+    `Adding overall route with ${geometry.coordinates.length} coordinates`
+  );
+
+  const routeLine = L.geoJSON(geometry, {
+    style: {
+      color: color,
+      weight: CONFIG.routing.lineWeight,
+      opacity: CONFIG.routing.lineOpacity,
+      lineJoin: "round",
+      lineCap: "round",
+    },
   });
 
-  return routeLines;
+  mapLayers.route.addLayer(routeLine);
+  routeLines.push(routeLine);
+}
+
+/**
+ * Find indices in the route coordinates array that are closest to waypoints
+ */
+function findWaypointIndicesInRoute(routeCoordinates, waypointCoordinates) {
+  const indices = [];
+
+  // For the first waypoint, always use index 0
+  indices.push(0);
+
+  // For each waypoint except the first and last
+  for (let i = 1; i < waypointCoordinates.length - 1; i++) {
+    const waypoint = waypointCoordinates[i];
+
+    // Find the closest point in the route
+    let minDistance = Infinity;
+    let closestIndex = -1;
+
+    for (let j = 0; j < routeCoordinates.length; j++) {
+      const routePoint = routeCoordinates[j];
+      const distance = calculateDistance(
+        waypoint[1],
+        waypoint[0],
+        routePoint[1],
+        routePoint[0]
+      );
+
+      if (distance < minDistance) {
+        minDistance = distance;
+        closestIndex = j;
+      }
+    }
+
+    // If we found a close enough point (within 0.01 degrees ~1km)
+    if (minDistance < 0.01) {
+      indices.push(closestIndex);
+    }
+  }
+
+  // For the last waypoint, always use the last index
+  indices.push(routeCoordinates.length - 1);
+
+  return indices;
+}
+
+/**
+ * Calculate distance between two coordinates using Haversine formula
+ */
+function calculateDistance(lat1, lon1, lat2, lon2) {
+  return Math.sqrt(Math.pow(lat2 - lat1, 2) + Math.pow(lon2 - lon1, 2));
 }
 
 /**

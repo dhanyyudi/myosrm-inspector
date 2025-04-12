@@ -1271,8 +1271,7 @@ async function loadRoutingUrl(url) {
 }
 
 /**
- * Enhanced findRouteWithMultipleWaypoints function without CURB parameter
- * (since backend doesn't support it)
+ * Enhanced findRouteWithMultipleWaypoints function with improved GeoJSON handling
  */
 async function findRouteWithMultipleWaypoints() {
   // Update waypoints list first
@@ -1330,18 +1329,22 @@ async function findRouteWithMultipleWaypoints() {
       }
     }
 
-    // Note: CURB parameter is removed since not supported by backend
-
     console.log("Making OSRM API request:", url);
 
     // Save the current URL for the copy functionality
-    currentRoutingUrl = url;
+    currentRoutingUrl = `http://localhost:9966${url}`;
 
     // Update the URL display if it exists
     updateRoutingUrlDisplay();
 
     // Make the request
-    const response = await fetch(url);
+    let response;
+    try {
+      response = await fetch(url);
+    } catch (fetchError) {
+      console.error("Error fetching route:", fetchError);
+      throw new Error(`Network error: ${fetchError.message}`);
+    }
 
     // If the first profile fails, try alternatives
     if (!response.ok && response.status === 400) {
@@ -1365,46 +1368,64 @@ async function findRouteWithMultipleWaypoints() {
           }
         }
 
-        // Note: CURB parameter is removed since not supported by backend
-
         console.log(`Trying alternative profile ${altProfile}:`, altUrl);
 
-        const altResponse = await fetch(altUrl);
+        try {
+          const altResponse = await fetch(altUrl);
 
-        if (altResponse.ok) {
-          console.log(`Alternative profile ${altProfile} succeeded`);
+          if (altResponse.ok) {
+            console.log(`Alternative profile ${altProfile} succeeded`);
 
-          // Update the profile in the UI for future requests
-          const profileDisplay = document.getElementById("profile-display");
-          if (profileDisplay) {
-            const profileSpan = profileDisplay.querySelector("span");
-            if (profileSpan) {
-              profileSpan.textContent = altProfile;
-            } else {
-              profileDisplay.textContent = altProfile;
+            // Update the profile in the UI for future requests
+            const profileDisplay = document.getElementById("profile-display");
+            if (profileDisplay) {
+              const profileSpan = profileDisplay.querySelector("span");
+              if (profileSpan) {
+                profileSpan.textContent = altProfile;
+              } else {
+                profileDisplay.textContent = altProfile;
+              }
+              profileContainer.dataset.profile = altProfile;
             }
-            profileContainer.dataset.profile = altProfile;
+
+            let data;
+            try {
+              data = await altResponse.json();
+            } catch (jsonError) {
+              console.error("Error parsing response JSON:", jsonError);
+              throw new Error("Invalid response format");
+            }
+
+            if (
+              data.code !== "Ok" ||
+              !data.routes ||
+              data.routes.length === 0
+            ) {
+              throw new Error("Route not found");
+            }
+
+            // Fix geometry format - convert GeoJSON coordinates to proper GeoJSON object if needed
+            data = processRouteGeometry(data);
+
+            // Update current routing URL
+            currentRoutingUrl = altUrl;
+            updateRoutingUrlDisplay();
+
+            // Process the successful response
+            currentRouteData = data;
+            displayRoute(data, altProfile);
+            displayRouteSummary(data.routes[0], timeEnabled);
+            displayRouteSteps(data.routes[0]);
+            addMarkersFromInputs();
+
+            hideLoading();
+            return; // Exit the function since we've handled the request
           }
-
-          const data = await altResponse.json();
-
-          if (data.code !== "Ok" || !data.routes || data.routes.length === 0) {
-            throw new Error("Route not found");
-          }
-
-          // Update current routing URL
-          currentRoutingUrl = altUrl;
-          updateRoutingUrlDisplay();
-
-          // Process the successful response
-          currentRouteData = data;
-          displayRoute(data, altProfile);
-          displayRouteSummary(data.routes[0], timeEnabled);
-          displayRouteSteps(data.routes[0]);
-          addMarkersFromInputs();
-
-          hideLoading();
-          return; // Exit the function since we've handled the request
+        } catch (altError) {
+          console.error(
+            `Error with alternative profile ${altProfile}:`,
+            altError
+          );
         }
       }
 
@@ -1421,10 +1442,41 @@ async function findRouteWithMultipleWaypoints() {
       throw new Error(`HTTP error! Status: ${response.status}`);
     }
 
-    const data = await response.json();
+    let data;
+    try {
+      data = await response.json();
+    } catch (jsonError) {
+      console.error("Error parsing response JSON:", jsonError);
+      throw new Error("Invalid response format");
+    }
 
     if (data.code !== "Ok" || !data.routes || data.routes.length === 0) {
       throw new Error("Route not found");
+    }
+
+    // Fix geometry format - convert GeoJSON coordinates to proper GeoJSON object if needed
+    data = processRouteGeometry(data);
+
+    // Check if route has valid geometry
+    if (!isValidRouteGeometry(data)) {
+      console.warn("Route has invalid or missing geometry");
+
+      // Try to use the GeoJSON data from the file as a fallback
+      if (waypointsList.length >= 2) {
+        try {
+          const fallbackGeoJson = await loadFallbackGeometry();
+          if (
+            fallbackGeoJson &&
+            fallbackGeoJson.features &&
+            fallbackGeoJson.features.length > 0
+          ) {
+            console.log("Using fallback GeoJSON from file");
+            data.routes[0].geometry = fallbackGeoJson.features[0].geometry;
+          }
+        } catch (fallbackError) {
+          console.error("Error loading fallback geometry:", fallbackError);
+        }
+      }
     }
 
     // If time-enabled, check if the result actually uses time-dependent data
@@ -1471,6 +1523,107 @@ async function findRouteWithMultipleWaypoints() {
     document.getElementById("route-steps").innerHTML = "";
   } finally {
     hideLoading();
+  }
+}
+
+/**
+ * Process route geometry to ensure it's in the correct GeoJSON format
+ */
+function processRouteGeometry(data) {
+  if (!data || !data.routes || !data.routes.length) return data;
+
+  // Process main route geometry
+  data.routes.forEach((route, routeIndex) => {
+    // If the geometry is just an array of coordinates, convert it to a proper GeoJSON object
+    if (Array.isArray(route.geometry)) {
+      console.log(
+        `Converting route ${routeIndex} geometry from array to GeoJSON`
+      );
+      data.routes[routeIndex].geometry = {
+        type: "LineString",
+        coordinates: route.geometry,
+      };
+    }
+
+    // Also process leg geometries if they exist
+    if (route.legs) {
+      route.legs.forEach((leg, legIndex) => {
+        if (Array.isArray(leg.geometry)) {
+          console.log(
+            `Converting leg ${legIndex} geometry from array to GeoJSON`
+          );
+          data.routes[routeIndex].legs[legIndex].geometry = {
+            type: "LineString",
+            coordinates: leg.geometry,
+          };
+        }
+
+        // And step geometries
+        if (leg.steps) {
+          leg.steps.forEach((step, stepIndex) => {
+            if (Array.isArray(step.geometry)) {
+              data.routes[routeIndex].legs[legIndex].steps[stepIndex].geometry =
+                {
+                  type: "LineString",
+                  coordinates: step.geometry,
+                };
+            }
+          });
+        }
+      });
+    }
+  });
+
+  return data;
+}
+
+/**
+ * Check if the route has valid geometry
+ */
+function isValidRouteGeometry(data) {
+  if (!data || !data.routes || !data.routes[0]) return false;
+
+  const route = data.routes[0];
+
+  // Check if main geometry is valid
+  if (
+    route.geometry &&
+    route.geometry.type === "LineString" &&
+    route.geometry.coordinates &&
+    route.geometry.coordinates.length > 1
+  ) {
+    return true;
+  }
+
+  // Check if any leg has valid geometry
+  if (route.legs) {
+    for (const leg of route.legs) {
+      if (
+        leg.geometry &&
+        leg.geometry.type === "LineString" &&
+        leg.geometry.coordinates &&
+        leg.geometry.coordinates.length > 1
+      ) {
+        return true;
+      }
+    }
+  }
+
+  return false;
+}
+
+/**
+ * Load fallback geometry from the GeoJSON file
+ */
+async function loadFallbackGeometry() {
+  try {
+    const response = await window.fs.readFile("result-import-csv.geojson", {
+      encoding: "utf8",
+    });
+    return JSON.parse(response);
+  } catch (error) {
+    console.error("Error loading fallback geometry:", error);
+    return null;
   }
 }
 

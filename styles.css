@@ -775,6 +775,118 @@ body {
   flex: 1;
 }
 
+/* URL display section */
+.url-display-section {
+  margin: 15px 0;
+  padding: 15px;
+  background-color: #f9f9f9;
+  border-radius: 4px;
+  border: 1px solid #eee;
+}
+
+.url-display-section h3 {
+  font-size: 14px;
+  margin-bottom: 10px;
+  font-weight: 500;
+}
+
+.url-container {
+  display: flex;
+  gap: 5px;
+  margin-bottom: 8px;
+}
+
+.url-input {
+  flex: 1;
+  padding: 6px 10px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  font-size: 12px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  background-color: #fff;
+}
+
+#btn-load-url {
+  width: 100%;
+}
+
+/* Custom map cursor */
+.leaflet-container {
+  cursor: pointer; /* Default pointer instead of grab */
+}
+
+/* Enhanced waypoint markers - make them more visible with larger size */
+.custom-div-icon.start-icon,
+.custom-div-icon.end-icon,
+.custom-div-icon.via-icon {
+  transform: scale(1.2);
+  transition: transform 0.2s ease;
+}
+
+.custom-div-icon.start-icon:hover,
+.custom-div-icon.end-icon:hover,
+.custom-div-icon.via-icon:hover {
+  transform: scale(1.4);
+  z-index: 1000 !important;
+}
+
+/* Pulsing effect for start marker to make it more noticeable */
+@keyframes pulse {
+  0% {
+    transform: scale(1);
+    opacity: 1;
+  }
+  50% {
+    transform: scale(1.2);
+    opacity: 0.8;
+  }
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+.start-icon div {
+  animation: pulse 2s infinite;
+}
+
+/* Add a subtle grabbing cursor for draggable markers */
+.leaflet-marker-draggable {
+  cursor: grab !important;
+}
+
+.leaflet-marker-draggable:active {
+  cursor: grabbing !important;
+}
+
+/* Optional - override the default pin cursor if you want */
+.leaflet-marker-icon {
+  cursor: grab !important;
+}
+
+/* Make sure markers stay visible and clickable */
+.leaflet-marker-icon {
+  z-index: 1000 !important;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  :root {
+    --sidebar-width: 280px;
+  }
+
+  #sidebar {
+    position: absolute;
+    height: 100%;
+    z-index: 2000;
+  }
+
+  .sidebar-collapsed #sidebar {
+    transform: translateX(-100%);
+  }
+}
+
 /* Modal styles */
 .modal {
   position: fixed;
@@ -838,27 +950,6 @@ body {
   padding: 15px;
 }
 
-/* Profile display and edit button */
-.profile-value {
-  padding: 8px 10px;
-  background-color: #f5f5f5;
-  border: 1px solid #e0e0e0;
-  border-radius: 4px;
-  font-weight: 500;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
-
-.btn-edit {
-  color: #666;
-  transition: color 0.2s ease;
-}
-
-.btn-edit:hover {
-  color: var(--primary-color);
-}
-
 /* Profile select dropdown */
 .profile-select {
   width: 100%;
@@ -882,113 +973,140 @@ body {
   font-size: 12px;
 }
 
-/* URL display section */
-.url-display-section {
-  margin: 15px 0;
-  padding: 15px;
-  background-color: #f9f9f9;
-  border-radius: 4px;
-  border: 1px solid #eee;
+/* SweetAlert2 Custom Styles */
+.swal2-popup {
+  border-radius: var(--border-radius-lg);
+  padding: 1.5rem;
+  box-shadow: var(--shadow-lg);
+  font-family: var(--font-family);
 }
 
-.url-display-section h3 {
-  font-size: 14px;
-  margin-bottom: 10px;
-  font-weight: 500;
+.swal2-title {
+  color: var(--gray-900);
+  font-size: var(--font-size-xl);
+  font-weight: 600;
 }
 
-.url-container {
-  display: flex;
-  gap: 5px;
-  margin-bottom: 8px;
+.swal2-html-container {
+  color: var(--gray-700);
+  font-size: var(--font-size);
 }
 
-.url-input {
-  flex: 1;
-  padding: 6px 10px;
-  border: 1px solid #ddd;
-  border-radius: 4px;
-  font-size: 12px;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  background-color: #fff;
+.swal2-confirm {
+  background-color: var(--primary-color) !important;
+  border-radius: var(--border-radius) !important;
+  font-size: var(--font-size-sm) !important;
+  font-weight: 500 !important;
+  text-transform: uppercase !important;
+  letter-spacing: 0.5px !important;
+  padding: 10px 24px !important;
+  box-shadow: var(--shadow-sm) !important;
+  transition: var(--transition) !important;
 }
 
-#btn-load-url {
-  width: 100%;
+.swal2-confirm:hover {
+  background-color: var(--primary-dark) !important;
+  box-shadow: var(--shadow) !important;
+  transform: translateY(-1px) !important;
 }
 
-/* Responsive Design */
-@media (max-width: 768px) {
-  :root {
-    --sidebar-width: 280px;
-  }
-
-  #sidebar {
-    position: absolute;
-    height: 100%;
-    z-index: 2000;
-  }
-
-  .sidebar-collapsed #sidebar {
-    transform: translateX(-100%);
-  }
-}
-/* Custom map cursor */
-.leaflet-container {
-  cursor: pointer; /* Default pointer instead of grab */
+.swal2-cancel {
+  background-color: var(--gray-200) !important;
+  color: var(--gray-700) !important;
+  border-radius: var(--border-radius) !important;
+  font-size: var(--font-size-sm) !important;
+  font-weight: 500 !important;
+  text-transform: uppercase !important;
+  letter-spacing: 0.5px !important;
+  padding: 10px 24px !important;
+  box-shadow: var(--shadow-sm) !important;
+  transition: var(--transition) !important;
 }
 
-/* Enhanced waypoint markers - make them more visible with larger size */
-.custom-div-icon.start-icon,
-.custom-div-icon.end-icon,
-.custom-div-icon.via-icon {
-  transform: scale(1.2);
-  transition: transform 0.2s ease;
+.swal2-cancel:hover {
+  background-color: var(--gray-300) !important;
+  color: var(--gray-800) !important;
+  box-shadow: var(--shadow) !important;
+  transform: translateY(-1px) !important;
 }
 
-.custom-div-icon.start-icon:hover,
-.custom-div-icon.end-icon:hover,
-.custom-div-icon.via-icon:hover {
-  transform: scale(1.4);
-  z-index: 1000 !important;
+.swal2-icon {
+  border-width: 3px !important;
 }
 
-/* Pulsing effect for start marker to make it more noticeable */
-@keyframes pulse {
+.swal2-icon.swal2-info {
+  color: var(--primary-color) !important;
+  border-color: var(--primary-color) !important;
+}
+
+.swal2-icon.swal2-warning {
+  color: var(--warning-color) !important;
+  border-color: var(--warning-color) !important;
+}
+
+.swal2-icon.swal2-error {
+  color: var(--danger-color) !important;
+  border-color: var(--danger-color) !important;
+}
+
+.swal2-icon.swal2-success {
+  color: var(--success-color) !important;
+  border-color: var(--success-color) !important;
+}
+
+.swal2-icon.swal2-question {
+  color: var(--secondary-color) !important;
+  border-color: var(--secondary-color) !important;
+}
+
+/* Custom form controls inside SweetAlert2 */
+.swal2-input,
+.swal2-select {
+  border: 1px solid var(--gray-300) !important;
+  border-radius: var(--border-radius) !important;
+  font-size: var(--font-size-sm) !important;
+  transition: var(--transition) !important;
+  box-shadow: none !important;
+}
+
+.swal2-input:focus,
+.swal2-select:focus {
+  border-color: var(--primary-color) !important;
+  box-shadow: 0 0 0 3px rgba(67, 97, 238, 0.15) !important;
+}
+
+/* Toast styling */
+.swal2-toast {
+  background-color: white !important;
+  box-shadow: var(--shadow-lg) !important;
+  padding: 0.75rem 1.5rem !important;
+}
+
+.swal2-toast .swal2-title {
+  font-size: var(--font-size) !important;
+  margin: 0.5rem 0 !important;
+}
+
+.swal2-toast .swal2-icon {
+  margin: 0 0.75rem 0 0 !important;
+}
+
+/* Loading animation */
+.swal2-shown .spinner {
+  width: 60px;
+  height: 60px;
+  border: 6px solid var(--gray-200);
+  border-top: 6px solid var(--primary-color);
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  margin: 1.5rem auto;
+}
+
+@keyframes spin {
   0% {
-    transform: scale(1);
-    opacity: 1;
-  }
-  50% {
-    transform: scale(1.2);
-    opacity: 0.8;
+    transform: rotate(0deg);
   }
   100% {
-    transform: scale(1);
-    opacity: 1;
+    transform: rotate(360deg);
   }
-}
-
-.start-icon div {
-  animation: pulse 2s infinite;
-}
-
-/* Add a subtle grabbing cursor for draggable markers */
-.leaflet-marker-draggable {
-  cursor: grab !important;
-}
-
-.leaflet-marker-draggable:active {
-  cursor: grabbing !important;
-}
-
-/* Optional - override the default pin cursor if you want */
-.leaflet-marker-icon {
-  cursor: grab !important;
-}
-
-/* Make sure markers stay visible and clickable */
-.leaflet-marker-icon {
-  z-index: 1000 !important;
 }
