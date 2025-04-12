@@ -1,12 +1,9 @@
 /**
- * Enhanced routing module with CURB support, URL copy/paste, and dynamic profiles
+ * Module for routing with OSRM API
  */
 
 // Variable to store last route data
 let currentRouteData = null;
-
-// Store the current routing URL
-let currentRoutingUrl = "";
 
 // Array to store all waypoints
 let waypointsList = [];
@@ -15,7 +12,7 @@ let waypointsList = [];
 const PROFILE_UPDATE_INTERVAL = 30000; // 30 seconds
 
 /**
- * Initialize routing functionality with enhanced features
+ * Initialize routing functionality with real-time profile updates
  */
 async function initRouting() {
   // Setup event listener for route search button
@@ -48,327 +45,7 @@ async function initRouting() {
   // Setup time-dependent routing
   initTimeDependentRouting();
 
-  // Setup CURB parameters
-  initCurbParameters();
-
-  // Setup URL copy/paste functionality
-  initUrlHandling();
-
-  // Setup auto-routing toggle
-  initAutoRouting();
-
-  console.log("Enhanced routing module initialized");
-}
-
-/**
- * Initialize CURB parameter options
- */
-function initCurbParameters() {
-  // Create container for CURB options
-  const curbContainer = document.createElement("div");
-  curbContainer.className = "form-group curb-options";
-
-  // Add CURB toggle switch
-  curbContainer.innerHTML = `
-    <div class="toggle-container">
-      <label for="curb-toggle" class="toggle-label">CURB Routing:</label>
-      <div class="toggle-switch">
-        <input type="checkbox" id="curb-toggle" class="toggle-checkbox">
-        <label for="curb-toggle" class="toggle-slider"></label>
-      </div>
-      <i class="fa fa-info-circle curb-info" title="CURB routing enforces local turn restrictions and approach/departure directions"></i>
-    </div>
-  `;
-
-  // Add container to route options
-  document.querySelector(".route-options").appendChild(curbContainer);
-
-  // Add event listener for CURB toggle
-  document
-    .getElementById("curb-toggle")
-    .addEventListener("change", function () {
-      // If auto-routing is enabled, find new route with CURB parameter
-      if (document.getElementById("auto-route-toggle").checked) {
-        findRouteWithMultipleWaypoints();
-      }
-    });
-}
-
-/**
- * Initialize URL handling features (copy/paste routing URLs)
- */
-function initUrlHandling() {
-  // Create container for URL options
-  const urlContainer = document.createElement("div");
-  urlContainer.className = "form-group url-options panel";
-
-  // Add URL options HTML
-  urlContainer.innerHTML = `
-    <div class="panel-header">
-      <h2><i class="fa fa-link"></i> Routing URL</h2>
-    </div>
-    <div class="panel-content">
-      <div class="url-actions">
-        <button id="btn-copy-url" class="btn btn-secondary">
-          <i class="fa fa-copy"></i> Copy Routing URL
-        </button>
-        <button id="btn-open-url-modal" class="btn btn-secondary">
-          <i class="fa fa-paste"></i> Paste & Render URL
-        </button>
-      </div>
-      
-      <!-- URL Modal (initially hidden) -->
-      <div id="url-modal" class="modal">
-        <div class="modal-content">
-          <div class="modal-header">
-            <h3>Paste OSRM Routing URL</h3>
-            <span class="close-modal">&times;</span>
-          </div>
-          <div class="modal-body">
-            <textarea id="routing-url-input" placeholder="Paste OSRM routing URL here..."></textarea>
-            <button id="btn-render-url" class="btn btn-primary">
-              <i class="fa fa-play"></i> Render Route
-            </button>
-          </div>
-        </div>
-      </div>
-    </div>
-  `;
-
-  // Add container to panels container, after the existing panels
-  const panelsContainer = document.querySelector(".panels-container");
-  const resultsPanel = document.getElementById("panel-results");
-  panelsContainer.insertBefore(urlContainer, resultsPanel.nextSibling);
-
-  // Setup event listeners for URL actions
-  document
-    .getElementById("btn-copy-url")
-    .addEventListener("click", copyRoutingUrl);
-  document
-    .getElementById("btn-open-url-modal")
-    .addEventListener("click", openUrlModal);
-  document
-    .getElementById("btn-render-url")
-    .addEventListener("click", renderPastedUrl);
-
-  // Close modal when clicking on X or outside the modal
-  document
-    .querySelector(".close-modal")
-    .addEventListener("click", closeUrlModal);
-  window.addEventListener("click", function (event) {
-    const modal = document.getElementById("url-modal");
-    if (event.target == modal) {
-      closeUrlModal();
-    }
-  });
-}
-
-/**
- * Initialize auto-routing toggle
- */
-function initAutoRouting() {
-  // Create container for auto-routing toggle
-  const autoRouteContainer = document.createElement("div");
-  autoRouteContainer.className = "form-group auto-route-options";
-
-  // Add auto-routing toggle switch
-  autoRouteContainer.innerHTML = `
-    <div class="toggle-container">
-      <label for="auto-route-toggle" class="toggle-label">Auto-Routing:</label>
-      <div class="toggle-switch">
-        <input type="checkbox" id="auto-route-toggle" class="toggle-checkbox" checked>
-        <label for="auto-route-toggle" class="toggle-slider"></label>
-      </div>
-      <i class="fa fa-info-circle auto-info" title="When enabled, routes will automatically recalculate when markers are moved"></i>
-    </div>
-  `;
-
-  // Add container to route options
-  document
-    .querySelector(".route-options")
-    .insertBefore(
-      autoRouteContainer,
-      document.querySelector(".action-buttons")
-    );
-}
-
-/**
- * Copy current routing URL to clipboard
- */
-function copyRoutingUrl() {
-  if (!currentRoutingUrl) {
-    alert("No route is currently displayed. Please find a route first.");
-    return;
-  }
-
-  // Create temporary textarea to copy URL
-  const tempTextArea = document.createElement("textarea");
-  tempTextArea.value = currentRoutingUrl;
-  document.body.appendChild(tempTextArea);
-  tempTextArea.select();
-
-  try {
-    // Copy URL to clipboard
-    document.execCommand("copy");
-
-    // Show success message
-    const copyBtn = document.getElementById("btn-copy-url");
-    const originalText = copyBtn.innerHTML;
-    copyBtn.innerHTML = '<i class="fa fa-check"></i> URL Copied!';
-
-    // Reset button text after 2 seconds
-    setTimeout(() => {
-      copyBtn.innerHTML = originalText;
-    }, 2000);
-  } catch (err) {
-    console.error("Failed to copy URL:", err);
-    alert("Failed to copy URL to clipboard");
-  }
-
-  document.body.removeChild(tempTextArea);
-}
-
-/**
- * Open URL modal dialog
- */
-function openUrlModal() {
-  document.getElementById("url-modal").style.display = "block";
-  document.getElementById("routing-url-input").focus();
-}
-
-/**
- * Close URL modal dialog
- */
-function closeUrlModal() {
-  document.getElementById("url-modal").style.display = "none";
-}
-
-/**
- * Parse and render route from pasted URL
- */
-function renderPastedUrl() {
-  const urlInput = document.getElementById("routing-url-input").value.trim();
-
-  if (!urlInput) {
-    alert("Please paste a valid OSRM routing URL");
-    return;
-  }
-
-  try {
-    // Parse the URL
-    const urlObj = new URL(urlInput);
-
-    // Extract profile, coordinates, and other parameters
-    const pathParts = urlObj.pathname.split("/");
-    let profile, coordinates;
-
-    // Find profile and coordinates in the URL
-    for (let i = 0; i < pathParts.length; i++) {
-      if (
-        pathParts[i] === "route" ||
-        pathParts[i] === "trip" ||
-        pathParts[i] === "match"
-      ) {
-        if (i + 3 < pathParts.length) {
-          profile = pathParts[i + 2];
-          coordinates = pathParts[i + 3];
-          break;
-        }
-      }
-    }
-
-    if (!profile || !coordinates) {
-      throw new Error("Could not find profile or coordinates in URL");
-    }
-
-    // Parse coordinates and set as waypoints
-    const coords = coordinates.split(";");
-    if (coords.length < 2) {
-      throw new Error("URL must contain at least start and end coordinates");
-    }
-
-    // Clear existing waypoints
-    clearRouteAndWaypoints();
-
-    // Set start point
-    const startCoord = coords[0];
-    document.getElementById("start-point").value = startCoord;
-    const startLatLng = parseCoordinateString(startCoord);
-    if (startLatLng) {
-      addStartMarker({ lat: startLatLng[1], lng: startLatLng[0] });
-    }
-
-    // Set via points
-    for (let i = 1; i < coords.length - 1; i++) {
-      const viaCoord = coords[i];
-      const newViaPoint = addNewWaypoint();
-      const viaInput = newViaPoint.querySelector(".waypoint-input");
-      viaInput.value = viaCoord;
-
-      const viaLatLng = parseCoordinateString(viaCoord);
-      if (viaLatLng) {
-        addViaMarker({ lat: viaLatLng[1], lng: viaLatLng[0] }, viaInput.id);
-      }
-    }
-
-    // Set end point
-    const endCoord = coords[coords.length - 1];
-    document.getElementById("end-point").value = endCoord;
-    const endLatLng = parseCoordinateString(endCoord);
-    if (endLatLng) {
-      addEndMarker({ lat: endLatLng[1], lng: endLatLng[0] });
-    }
-
-    // Extract and set other parameters
-    const params = new URLSearchParams(urlObj.search);
-
-    // Set CURB parameter if present
-    if (params.has("curb")) {
-      document.getElementById("curb-toggle").checked =
-        params.get("curb") === "true";
-    }
-
-    // Set time parameter if present
-    if (params.has("depart")) {
-      const departTimestamp = parseInt(params.get("depart")) * 1000; // Convert to milliseconds
-      const departDate = new Date(departTimestamp);
-
-      const enableTimeRouting = document.getElementById("enable-time-routing");
-      if (enableTimeRouting) {
-        enableTimeRouting.checked = true;
-      }
-
-      const departureTime = document.getElementById("departure-time");
-      if (departureTime) {
-        const year = departDate.getFullYear();
-        const month = String(departDate.getMonth() + 1).padStart(2, "0");
-        const day = String(departDate.getDate()).padStart(2, "0");
-        const hours = String(departDate.getHours()).padStart(2, "0");
-        const minutes = String(departDate.getMinutes()).padStart(2, "0");
-
-        departureTime.value = `${year}-${month}-${day}T${hours}:${minutes}`;
-      }
-    }
-
-    // Update profile if possible
-    const profileDisplay = document.getElementById("profile-display");
-    if (profileDisplay) {
-      profileDisplay.textContent = profile;
-      profileDisplay.parentElement.dataset.profile = profile;
-    }
-
-    // Close the modal
-    closeUrlModal();
-
-    // Update waypoints list
-    updateWaypointsList();
-
-    // Find the route
-    findRouteWithMultipleWaypoints();
-  } catch (error) {
-    console.error("Error parsing URL:", error);
-    alert(`Error parsing URL: ${error.message}`);
-  }
+  console.log("Routing module initialized with real-time profile updates");
 }
 
 /**
@@ -503,7 +180,7 @@ async function getCurrentProfile() {
     try {
       console.log("Attempting to detect profile from routing capabilities");
       // Try to determine which profile works by making minimal routing requests
-      const profiles = ["van_2022", "van_scpa", "driving", "car"];
+      const profiles = ["van_2022", "driving", "car"];
 
       for (const profile of profiles) {
         try {
@@ -529,12 +206,12 @@ async function getCurrentProfile() {
       console.log("Route detection failed:", routeError.message);
     }
 
-    console.log("Falling back to default profile");
+    console.log("Falling back to default profile: van_2022");
     // Final fallback - always use a sensible default
-    return "driving";
+    return "van_2022";
   } catch (error) {
     console.error("Error fetching current profile:", error);
-    return "driving"; // Default profile on error
+    return "van_2022"; // Default profile on error
   }
 }
 
@@ -708,23 +385,6 @@ function removeWaypoint(waypointElement) {
   const container = waypointElement.parentNode;
   const previousSeparator = waypointElement.previousElementSibling;
 
-  // Get the ID of the waypoint to be removed (for marker removal)
-  const inputElement = waypointElement.querySelector(".waypoint-input");
-  if (inputElement && inputElement.id) {
-    const inputId = inputElement.id;
-
-    // Find and remove the corresponding marker
-    const markerId = `via-marker-${inputId.split("-").pop()}`;
-    const markerIndex = waypointMarkers.via.findIndex(
-      (m) => m.options.markerId === markerId
-    );
-
-    if (markerIndex !== -1) {
-      mapLayers.waypoints.removeLayer(waypointMarkers.via[markerIndex]);
-      waypointMarkers.via.splice(markerIndex, 1);
-    }
-  }
-
   // Remove the waypoint and its separator
   container.removeChild(waypointElement);
   if (
@@ -736,11 +396,6 @@ function removeWaypoint(waypointElement) {
 
   // Update waypoints list
   updateWaypointsList();
-
-  // If auto-routing is enabled, find new route
-  if (document.getElementById("auto-route-toggle").checked) {
-    findRouteWithMultipleWaypoints();
-  }
 }
 
 /**
@@ -799,17 +454,6 @@ function handleMapClickWithMultipleWaypoints(e) {
       // It's a via point
       addViaMarker(latlng, activeInput.id);
     }
-
-    // Update waypoints list
-    updateWaypointsList();
-
-    // If auto-routing is enabled, find new route
-    if (
-      document.getElementById("auto-route-toggle") &&
-      document.getElementById("auto-route-toggle").checked
-    ) {
-      findRouteWithMultipleWaypoints();
-    }
   } else {
     // Default behavior for non-active inputs
     const startInput = document.getElementById("start-point");
@@ -823,33 +467,30 @@ function handleMapClickWithMultipleWaypoints(e) {
       addEndMarker(latlng);
     } else {
       // If both start and end are filled, add a new via point
-      const newWaypoint = addNewWaypoint();
+      addNewWaypoint();
 
-      // Wait for the new waypoint to be added to the DOM
+      // FIXED: Wait for the new waypoint to be added to the DOM
       setTimeout(() => {
-        const newInput = newWaypoint.querySelector(".waypoint-input");
+        const newInput = document.querySelector(
+          ".waypoint.via .waypoint-input:not([value])"
+        );
         if (newInput) {
           newInput.value = coordString;
           addViaMarker(latlng, newInput.id);
 
           // Ensure waypoints list is updated after adding the coordinate
           updateWaypointsList();
-
-          // If auto-routing is enabled, find new route
-          if (
-            document.getElementById("auto-route-toggle") &&
-            document.getElementById("auto-route-toggle").checked
-          ) {
-            findRouteWithMultipleWaypoints();
-          }
         }
       }, 10);
     }
   }
+
+  // Update waypoints list
+  updateWaypointsList();
 }
 
 /**
- * Improved CSV/TXT file upload handler for lat,lon format
+ * Handle CSV/TXT file upload
  */
 function handleFileUpload(event) {
   const file = event.target.files[0];
@@ -866,13 +507,12 @@ function handleFileUpload(event) {
 }
 
 /**
- * Parse waypoints from uploaded file with support for lat,lon format
+ * Parse waypoints from uploaded file
  */
 function parseWaypointsFile(contents, filename) {
   // Clear existing waypoints except start
   clearWaypoints();
 
-  // Split by lines and remove empty lines
   const lines = contents.split(/\r?\n/).filter((line) => line.trim() !== "");
 
   if (lines.length < 2) {
@@ -880,93 +520,8 @@ function parseWaypointsFile(contents, filename) {
     return;
   }
 
-  // Detect if it's a CSV with headers
-  const hasHeaders = /^[a-zA-Z"']/.test(lines[0]);
-  const startIndex = hasHeaders ? 1 : 0;
-
-  // Determine the format (lat,lon or lon,lat)
-  let isLatLonFormat = true;
-
-  // Check for "latitude" or "lat" in the header
-  if (hasHeaders) {
-    const headerLine = lines[0].toLowerCase();
-    if (headerLine.includes("latitude") || headerLine.includes("lat")) {
-      isLatLonFormat = true;
-    } else if (headerLine.includes("longitude") || headerLine.includes("lon")) {
-      // Check if longitude comes first
-      const lonIndex = Math.min(
-        headerLine.indexOf("longitude") !== -1
-          ? headerLine.indexOf("longitude")
-          : Infinity,
-        headerLine.indexOf("lon") !== -1 ? headerLine.indexOf("lon") : Infinity
-      );
-
-      const latIndex = Math.min(
-        headerLine.indexOf("latitude") !== -1
-          ? headerLine.indexOf("latitude")
-          : Infinity,
-        headerLine.indexOf("lat") !== -1 ? headerLine.indexOf("lat") : Infinity
-      );
-
-      isLatLonFormat = lonIndex > latIndex;
-    }
-  }
-
-  console.log(`CSV format detected: ${isLatLonFormat ? "lat,lon" : "lon,lat"}`);
-
-  // Process waypoints
-  const waypoints = [];
-
-  for (let i = startIndex; i < lines.length; i++) {
-    const line = lines[i].trim();
-    if (!line) continue;
-
-    // Parse the line
-    let lat, lon;
-
-    // Handle quoted values and different delimiters
-    const parts = line
-      .split(/[,;\t]/)
-      .map((part) => part.trim().replace(/^["']|["']$/g, ""));
-
-    if (parts.length >= 2) {
-      // Check if we have both lat and lon
-      if (isLatLonFormat) {
-        // Format is lat,lon
-        lat = parseFloat(parts[0]);
-        lon = parseFloat(parts[1]);
-      } else {
-        // Format is lon,lat
-        lon = parseFloat(parts[0]);
-        lat = parseFloat(parts[1]);
-      }
-
-      // Validate lat/lon values
-      if (
-        !isNaN(lat) &&
-        !isNaN(lon) &&
-        lat >= -90 &&
-        lat <= 90 &&
-        lon >= -180 &&
-        lon <= 180
-      ) {
-        // Format as "lon,lat" for OSRM
-        waypoints.push(`${lon},${lat}`);
-      }
-    }
-  }
-
-  if (waypoints.length < 2) {
-    alert("Could not parse at least 2 valid waypoints from the file");
-    return;
-  }
-
   // Set start point
-  document.getElementById("start-point").value = waypoints[0];
-  const startLatLng = parseCoordinateString(waypoints[0]);
-  if (startLatLng) {
-    addStartMarker({ lat: startLatLng[1], lng: startLatLng[0] });
-  }
+  document.getElementById("start-point").value = lines[0].trim();
 
   // Process intermediate points (clear any existing via points first)
   const viaPoints = document.querySelectorAll(".waypoint.via");
@@ -975,41 +530,126 @@ function parseWaypointsFile(contents, filename) {
   });
 
   // Add new via points
-  for (let i = 1; i < waypoints.length - 1; i++) {
-    const newWaypoint = addNewWaypoint();
-    const newInput = newWaypoint.querySelector(".waypoint-input");
-    if (newInput) {
-      newInput.value = waypoints[i];
-      const viaLatLng = parseCoordinateString(waypoints[i]);
-      if (viaLatLng) {
-        addViaMarker({ lat: viaLatLng[1], lng: viaLatLng[0] }, newInput.id);
-      }
+  for (let i = 1; i < lines.length - 1; i++) {
+    addNewWaypoint();
+    const inputs = document.querySelectorAll(".waypoint.via .waypoint-input");
+    const lastInput = inputs[inputs.length - 1];
+    if (lastInput) {
+      lastInput.value = lines[i].trim();
     }
   }
 
   // Set end point
-  document.getElementById("end-point").value = waypoints[waypoints.length - 1];
-  const endLatLng = parseCoordinateString(waypoints[waypoints.length - 1]);
-  if (endLatLng) {
-    addEndMarker({ lat: endLatLng[1], lng: endLatLng[0] });
-  }
+  document.getElementById("end-point").value = lines[lines.length - 1].trim();
 
   // Update waypoints list
   updateWaypointsList();
 
-  alert(`Successfully imported ${waypoints.length} waypoints from ${filename}`);
+  // Add markers for all waypoints
+  addMarkersFromInputs();
 
-  // If auto-routing is enabled, find new route
-  if (
-    document.getElementById("auto-route-toggle") &&
-    document.getElementById("auto-route-toggle").checked
-  ) {
-    findRouteWithMultipleWaypoints();
-  }
+  alert(`Successfully imported ${lines.length} waypoints from ${filename}`);
 }
 
 /**
- * Enhanced findRouteWithMultipleWaypoints function with CURB support
+ * Add markers for all waypoints from input values
+ */
+function addMarkersFromInputs() {
+  const inputs = document.querySelectorAll(".waypoint-input");
+
+  inputs.forEach((input) => {
+    if (!input.value) return;
+
+    const coords = parseCoordinateString(input.value);
+    if (!coords) return;
+
+    const latlng = { lat: coords[1], lng: coords[0] };
+
+    if (input.id === "start-point") {
+      addStartMarker(latlng);
+    } else if (input.id === "end-point") {
+      addEndMarker(latlng);
+    } else {
+      addViaMarker(latlng, input.id);
+    }
+  });
+}
+
+/**
+ * Add time picker UI for time-dependent routing with better labels
+ */
+function addTimeDependentRoutingUI() {
+  const routeOptions = document.querySelector(".route-options");
+
+  // Create time selection container
+  const timeContainer = document.createElement("div");
+  timeContainer.className = "form-group time-selection";
+
+  // Create HTML for time selection with clearer labeling
+  timeContainer.innerHTML = `
+    <label for="departure-time">Departure Time:</label>
+    <div class="time-input-container">
+      <input type="datetime-local" id="departure-time" class="form-control">
+      <button id="btn-use-current-time" class="btn btn-secondary btn-sm">
+        <i class="fa fa-clock"></i> Current
+      </button>
+    </div>
+    <div class="time-toggle">
+      <input type="checkbox" id="enable-time-routing" class="toggle-checkbox">
+      <label for="enable-time-routing" class="toggle-label">Enable time-dependent routing (traffic-aware)</label>
+    </div>
+  `;
+
+  // Add to route options
+  routeOptions.appendChild(timeContainer);
+
+  // Set current time as default
+  setCurrentTimeAsDeparture();
+
+  // Event listener for "Current" button
+  document
+    .getElementById("btn-use-current-time")
+    .addEventListener("click", setCurrentTimeAsDeparture);
+
+  // Add explanation tooltip about time-dependent routing
+  const infoIcon = document.createElement("i");
+  infoIcon.className = "fa fa-info-circle";
+  infoIcon.style.marginLeft = "5px";
+  infoIcon.style.color = "#666";
+  infoIcon.title =
+    "Time-dependent routing uses historical traffic data to calculate travel times based on the selected departure time. This requires traffic data to be loaded in the OSRM backend.";
+
+  document.querySelector(".toggle-label").appendChild(infoIcon);
+}
+
+/**
+ * Set current time as departure time
+ */
+function setCurrentTimeAsDeparture() {
+  const now = new Date();
+  const year = now.getFullYear();
+  const month = String(now.getMonth() + 1).padStart(2, "0");
+  const day = String(now.getDate()).padStart(2, "0");
+  const hours = String(now.getHours()).padStart(2, "0");
+  const minutes = String(now.getMinutes()).padStart(2, "0");
+
+  document.getElementById(
+    "departure-time"
+  ).value = `${year}-${month}-${day}T${hours}:${minutes}`;
+
+  console.log(`Set departure time to current time: ${now.toLocaleString()}`);
+}
+
+/**
+ * Initialize time-dependent routing
+ */
+function initTimeDependentRouting() {
+  // Add UI elements
+  addTimeDependentRoutingUI();
+}
+
+/**
+ * Enhanced findRouteWithMultipleWaypoints function that properly uses time parameters
  */
 async function findRouteWithMultipleWaypoints() {
   // Update waypoints list first
@@ -1030,7 +670,7 @@ async function findRouteWithMultipleWaypoints() {
     );
     const profile = profileContainer
       ? profileContainer.dataset.profile
-      : "driving";
+      : "van_2022";
 
     // Get algorithm
     const algorithmContainer = document.querySelector(
@@ -1047,11 +687,6 @@ async function findRouteWithMultipleWaypoints() {
     const timeEnabled =
       document.getElementById("enable-time-routing") &&
       document.getElementById("enable-time-routing").checked;
-
-    // Check if CURB routing is enabled
-    const curbEnabled =
-      document.getElementById("curb-toggle") &&
-      document.getElementById("curb-toggle").checked;
 
     // Build URL with base parameters
     let url = `${CONFIG.osrmBackendUrl}/route/v1/${profile}/${waypointsString}?overview=full&geometries=geojson&steps=true&annotations=true&alternatives=false`;
@@ -1072,16 +707,7 @@ async function findRouteWithMultipleWaypoints() {
       }
     }
 
-    // Add CURB parameter if enabled
-    if (curbEnabled) {
-      url += `&curb=true`;
-      console.log("CURB routing enabled");
-    }
-
     console.log("Making OSRM API request:", url);
-
-    // Store the current routing URL for copy feature
-    currentRoutingUrl = url;
 
     // Make the request
     const response = await fetch(url);
@@ -1091,14 +717,12 @@ async function findRouteWithMultipleWaypoints() {
       console.log(`Profile ${profile} request failed, trying alternatives`);
 
       // Try alternative profiles
-      const alternativeProfiles = ["van_scpa", "driving", "car", "van_2022"];
+      const alternativeProfiles = ["driving", "car"];
 
       for (const altProfile of alternativeProfiles) {
         if (altProfile === profile) continue; // Skip if same as original
 
         const altUrl = `${CONFIG.osrmBackendUrl}/route/v1/${altProfile}/${waypointsString}?overview=full&geometries=geojson&steps=true&annotations=true&alternatives=false`;
-
-        let fullAltUrl = altUrl;
 
         if (timeEnabled) {
           const departureTimeInput = document.getElementById("departure-time");
@@ -1106,17 +730,13 @@ async function findRouteWithMultipleWaypoints() {
             const timestamp = Math.floor(
               new Date(departureTimeInput.value).getTime() / 1000
             );
-            fullAltUrl += `&depart=${timestamp}`;
+            altUrl += `&depart=${timestamp}`;
           }
         }
 
-        if (curbEnabled) {
-          fullAltUrl += `&curb=true`;
-        }
+        console.log(`Trying alternative profile ${altProfile}:`, altUrl);
 
-        console.log(`Trying alternative profile ${altProfile}:`, fullAltUrl);
-
-        const altResponse = await fetch(fullAltUrl);
+        const altResponse = await fetch(altUrl);
 
         if (altResponse.ok) {
           console.log(`Alternative profile ${altProfile} succeeded`);
@@ -1127,9 +747,6 @@ async function findRouteWithMultipleWaypoints() {
             profileDisplay.textContent = altProfile;
             profileContainer.dataset.profile = altProfile;
           }
-
-          // Store the successful routing URL
-          currentRoutingUrl = fullAltUrl;
 
           const data = await altResponse.json();
 
@@ -1219,4 +836,230 @@ async function findRouteWithMultipleWaypoints() {
   }
 }
 
-// Remaining functions from original routing.js...
+/**
+ * Check if the response contains time-dependent data
+ */
+function checkForTimeData(data) {
+  try {
+    // Check different indicators that might suggest time-data is being used
+
+    // 1. Check if 'depart' or 'arrival' properties exist in the response
+    if (data.routes[0].depart || data.routes[0].arrival) {
+      return true;
+    }
+
+    // 2. Check for any traffic-related metadata
+    if (data.metadata && data.metadata.traffic) {
+      return true;
+    }
+
+    // 3. Check if any legs have time-related properties
+    if (data.routes[0].legs && data.routes[0].legs.length > 0) {
+      for (const leg of data.routes[0].legs) {
+        if (leg.traffic || leg.departure_time || leg.arrival_time) {
+          return true;
+        }
+      }
+    }
+
+    // 4. If the backend included a property indicating time-dependent
+    if (data.time_dependent === true || data.traffic === true) {
+      return true;
+    }
+
+    // No indicators found
+    return false;
+  } catch (error) {
+    console.error("Error checking for time data:", error);
+    return false;
+  }
+}
+
+/**
+ * Display route summary with enhanced time information
+ */
+function displayRouteSummary(route, isTimeBased = false) {
+  if (!route) return;
+
+  const distance = formatDistance(route.distance);
+  const duration = formatDuration(route.duration);
+
+  let summaryHtml = `
+    <div class="route-stat">
+      <i class="fa fa-road"></i>
+      <span>Distance: <span class="route-stat-value">${distance}</span></span>
+    </div>
+    <div class="route-stat">
+      <i class="fa fa-clock"></i>
+      <span>Duration: <span class="route-stat-value">${duration}</span></span>
+    </div>
+  `;
+
+  // Add average speed information
+  if (route.distance && route.duration) {
+    const avgSpeed = (route.distance / route.duration) * 3.6; // m/s to km/h
+    summaryHtml += `
+      <div class="route-stat">
+        <i class="fa fa-tachometer-alt"></i>
+        <span>Average Speed: <span class="route-stat-value">${Math.round(
+          avgSpeed
+        )} km/h</span></span>
+      </div>
+    `;
+  }
+
+  // Add departure and arrival time if time-based routing is used
+  if (isTimeBased) {
+    const departureTime = document.getElementById("departure-time").value;
+    if (departureTime) {
+      const departure = new Date(departureTime);
+      const arrival = new Date(departure.getTime() + route.duration * 1000);
+
+      // Format times
+      const formatTimeOptions = {
+        hour: "2-digit",
+        minute: "2-digit",
+        hour12: false,
+        weekday: "short",
+        day: "numeric",
+        month: "short",
+      };
+
+      const departureStr = departure.toLocaleTimeString(
+        "en-US",
+        formatTimeOptions
+      );
+      const arrivalStr = arrival.toLocaleTimeString("en-US", formatTimeOptions);
+
+      summaryHtml += `
+        <div class="route-stat">
+          <i class="fa fa-hourglass-start"></i>
+          <span>Departure Time: <span class="route-stat-value">${departureStr}</span></span>
+        </div>
+        <div class="route-stat">
+          <i class="fa fa-hourglass-end"></i>
+          <span>Arrival Time: <span class="route-stat-value">${arrivalStr}</span></span>
+        </div>
+      `;
+    }
+  }
+
+  document.getElementById("route-summary").innerHTML = summaryHtml;
+}
+
+/**
+ * Display route steps details
+ */
+function displayRouteSteps(route) {
+  if (!route || !route.legs || route.legs.length === 0) {
+    document.getElementById("route-steps").innerHTML = "";
+    return;
+  }
+
+  let stepsHtml = "";
+
+  route.legs.forEach((leg) => {
+    if (!leg.steps || leg.steps.length === 0) return;
+
+    leg.steps.forEach((step) => {
+      const instruction = getReadableInstruction(step.maneuver);
+      const distance = formatDistance(step.distance);
+      const duration = formatDuration(step.duration);
+      const iconName = getTurnIcon(step.maneuver?.modifier || "straight");
+
+      let stepHtml = `
+        <div class="step-item">
+          <div class="step-instruction">
+            <div class="step-icon">
+              <i class="fa fa-${iconName}"></i>
+            </div>
+            <div class="step-text">
+              ${instruction} ${step.name ? "onto " + step.name : ""}
+              <div class="step-distance">${distance} (${duration})`;
+
+      // Add speed information if available
+      if (step.distance && step.duration) {
+        const stepSpeed = (step.distance / step.duration) * 3.6; // m/s to km/h
+        stepHtml += ` <span style="color:#00cec9; font-weight:bold;">${Math.round(
+          stepSpeed
+        )} km/h</span>`;
+      }
+
+      stepHtml += `</div>
+            </div>
+          </div>
+        </div>
+      `;
+
+      stepsHtml += stepHtml;
+    });
+  });
+
+  document.getElementById("route-steps").innerHTML = stepsHtml;
+}
+
+/**
+ * Clear route and waypoints
+ */
+function clearRouteAndWaypoints() {
+  clearRoute();
+  clearWaypoints();
+
+  // Clear input fields
+  document.getElementById("start-point").value = "";
+  document.getElementById("end-point").value = "";
+
+  // Clear via waypoints
+  const viaPoints = document.querySelectorAll(".waypoint.via");
+  viaPoints.forEach((point) => {
+    removeWaypoint(point);
+  });
+
+  // Clear route info
+  document.getElementById("route-summary").innerHTML =
+    '<p class="no-route">No route is currently displayed.</p>';
+  document.getElementById("route-steps").innerHTML = "";
+
+  // Reset current route data
+  currentRouteData = null;
+
+  // Reset waypoints list
+  waypointsList = [];
+}
+
+/**
+ * Clear start point
+ */
+function clearStartPoint() {
+  document.getElementById("start-point").value = "";
+
+  if (markerStart) {
+    mapLayers.waypoints.removeLayer(markerStart);
+    markerStart = null;
+  }
+
+  // Update waypoints list
+  updateWaypointsList();
+}
+
+/**
+ * Clear end point
+ */
+function clearEndPoint() {
+  document.getElementById("end-point").value = "";
+
+  if (markerEnd) {
+    mapLayers.waypoints.removeLayer(markerEnd);
+    markerEnd = null;
+  }
+
+  // Update waypoints list
+  updateWaypointsList();
+}
+
+/**
+ * Get current route data
+ */
+function getCurrentRouteData() {
+  return currentRouteData;
+}

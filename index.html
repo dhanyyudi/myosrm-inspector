@@ -12,23 +12,86 @@
       rel="stylesheet"
       href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
     />
-    <link rel="stylesheet" href="/styles/modern-styles.css" />
-    <!-- PRE-INITIALIZATION FIX - MUST BE FIRST -->
-    <script src="/js/pre-init-fix.js"></script>
+    <link rel="stylesheet" href="/styles.css" />
+    <style>
+      /* Multiple Waypoints Styling */
+      .waypoint.via .waypoint-icon {
+        color: #f39c12;
+      }
+
+      .waypoint-buttons {
+        display: flex;
+        gap: 10px;
+        margin-top: 10px;
+      }
+
+      /* Profile and Algorithm Display */
+      .profile-value,
+      .algorithm-value {
+        padding: 8px 10px;
+        background-color: #f5f5f5;
+        border: 1px solid #e0e0e0;
+        border-radius: 4px;
+        font-weight: 500;
+      }
+
+      /* Enhanced Speed Labels */
+      .speed-label.calculated div {
+        background-color: transparent !important;
+      }
+
+      .speed-label.fallback div {
+        background-color: transparent !important;
+      }
+
+      /* Time-dependent routing */
+      .time-input-container {
+        display: flex;
+        gap: 8px;
+      }
+
+      .time-input-container .btn-sm {
+        padding: 4px 8px;
+        font-size: 12px;
+      }
+
+      .time-toggle {
+        margin-top: 6px;
+        display: flex;
+        align-items: center;
+      }
+
+      .toggle-checkbox {
+        margin-right: 8px;
+      }
+
+      .toggle-label {
+        font-size: 13px;
+        color: #666;
+      }
+
+      /* Warning message for time-dependent routing */
+      .warning-message {
+        padding: 8px;
+        background-color: #fff9e6;
+        border-left: 3px solid #f39c12;
+        margin-bottom: 10px;
+      }
+    </style>
   </head>
   <body>
     <div id="app">
       <!-- Sidebar -->
       <div id="sidebar">
         <div class="sidebar-header">
-          <h1><i class="fa fa-route"></i> OSRM Inspector</h1>
+          <h1>OSRM Inspector</h1>
         </div>
 
         <div class="panels-container">
           <!-- Panel Routing -->
           <div class="panel" id="panel-routing">
             <div class="panel-header">
-              <h2><i class="fa fa-map-marked-alt"></i> Routing</h2>
+              <h2><i class="fa fa-route"></i> Routing</h2>
             </div>
             <div class="panel-content">
               <div class="waypoints-container">
@@ -89,10 +152,6 @@
                   </select>
                 </div>
 
-                <!-- CURB toggle will be added here by JavaScript -->
-
-                <!-- Auto-routing toggle will be added here by JavaScript -->
-
                 <!-- Time selection will be added here by JavaScript -->
               </div>
 
@@ -133,10 +192,10 @@
                   <h3>Route Debugging</h3>
                   <div class="toggle-buttons">
                     <button id="btn-show-turns" class="btn btn-toggle">
-                      <i class="fa fa-turn-up"></i> Turns
+                      <i class="fa fa-redo"></i> Turns
                     </button>
                     <button id="btn-show-speed" class="btn btn-toggle">
-                      <i class="fa fa-gauge-high"></i> Speed
+                      <i class="fa fa-tachometer-alt"></i> Speed
                     </button>
                     <button id="btn-show-names" class="btn btn-toggle">
                       <i class="fa fa-road"></i> Road Names
@@ -150,8 +209,6 @@
               </button>
             </div>
           </div>
-
-          <!-- URL Panel will be added here by JavaScript -->
 
           <!-- Panel Results -->
           <div class="panel" id="panel-results">
@@ -205,188 +262,11 @@
 
     <!-- Scripts -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.js"></script>
-
-    <!-- 1. Load configuration first -->
-    <script src="/js/config.js"></script>
-
-    <!-- 2. Load utility modules -->
-    <script src="/js/utils/format-utils.js"></script>
-    <script src="/js/utils/csv-parser.js"></script>
-
-    <!-- 3. Load core component modules -->
-    <script src="/js/enhanced-map.js"></script>
-    <script src="/js/full-routing.js"></script>
-    <script src="/js/debug.js"></script>
-
-    <!-- 4. Load enhancement modules -->
-    <script src="/js/waypoint-handler.js"></script>
-    <script src="/js/url-handler.js"></script>
-    <script src="/js/numbered-marker.js"></script>
-
-    <!-- 5. Load main application entry point -->
-    <script src="/js/enhanced-app.js"></script>
-
-    <!-- Troubleshooting Shim - Add before </body> -->
-    <script>
-      // Check if main components are available, provide fallbacks if not
-      console.log("🔍 Running component diagnostic...");
-
-      // Check if map global object exists
-      if (!window.map) {
-        console.warn("map object not found, creating placeholder");
-        window.map = {
-          invalidateSize: function () {
-            console.log("Dummy invalidateSize called");
-          },
-          on: function () {
-            console.log("Dummy map.on called");
-          },
-          getBounds: function () {
-            return {
-              getCenter: function () {
-                return { lat: 0, lng: 0 };
-              },
-            };
-          },
-          fitBounds: function () {
-            console.log("Dummy fitBounds called");
-          },
-          getCenter: function () {
-            return { lat: 0, lng: 0 };
-          },
-          getZoom: function () {
-            return 10;
-          },
-        };
-      }
-
-      // Check if mapLayers exists
-      if (!window.mapLayers) {
-        console.warn("mapLayers not found, creating placeholder");
-        window.mapLayers = {
-          route: { addLayer: function () {}, removeLayer: function () {} },
-          waypoints: {
-            addLayer: function () {},
-            removeLayer: function () {},
-            clearLayers: function () {},
-          },
-          routeSegments: {
-            addLayer: function () {},
-            removeLayer: function () {},
-          },
-          debug: {
-            nodes: { addLayer: function () {}, clearLayers: function () {} },
-            edges: { addLayer: function () {}, clearLayers: function () {} },
-            cells: { addLayer: function () {}, clearLayers: function () {} },
-            turns: { addLayer: function () {}, clearLayers: function () {} },
-            speed: { addLayer: function () {}, clearLayers: function () {} },
-            names: { addLayer: function () {}, clearLayers: function () {} },
-          },
-        };
-      }
-
-      // Check if waypointMarkers exists
-      if (!window.waypointMarkers) {
-        console.warn("waypointMarkers not found, creating placeholder");
-        window.waypointMarkers = {
-          start: null,
-          end: null,
-          via: [],
-        };
-      }
-
-      // Provide core functions if they're missing
-      if (typeof window.initMap !== "function") {
-        console.warn("initMap not found, creating fallback function");
-        window.initMap = function () {
-          console.log("🔄 Fallback initMap called");
-          return window.map;
-        };
-      }
-
-      if (typeof window.initRouting !== "function") {
-        console.warn("initRouting not found, creating fallback function");
-        window.initRouting = async function () {
-          console.log("🔄 Fallback initRouting called");
-          return true;
-        };
-      }
-
-      if (typeof window.initDebugTools !== "function") {
-        console.warn("initDebugTools not found, creating fallback function");
-        window.initDebugTools = function () {
-          console.log("🔄 Fallback initDebugTools called");
-          return true;
-        };
-      }
-
-      if (typeof window.findRouteWithMultipleWaypoints !== "function") {
-        console.warn(
-          "findRouteWithMultipleWaypoints not found, creating fallback"
-        );
-        window.findRouteWithMultipleWaypoints = function () {
-          console.log("🔄 Fallback findRouteWithMultipleWaypoints called");
-        };
-      }
-
-      if (typeof window.updateWaypointsList !== "function") {
-        console.warn("updateWaypointsList not found, creating fallback");
-        window.updateWaypointsList = function () {
-          console.log("🔄 Fallback updateWaypointsList called");
-        };
-      }
-
-      if (typeof window.getCurrentRouteData !== "function") {
-        console.warn("getCurrentRouteData not found, creating fallback");
-        window.getCurrentRouteData = function () {
-          console.log("🔄 Fallback getCurrentRouteData called");
-          return null;
-        };
-      }
-
-      // Check additional components
-      if (typeof window.initWaypointHandler !== "function") {
-        console.warn("initWaypointHandler not found, creating fallback");
-        window.initWaypointHandler = function () {
-          console.log("🔄 Fallback initWaypointHandler called");
-          return true;
-        };
-      }
-
-      if (typeof window.initUrlHandler !== "function") {
-        console.warn("initUrlHandler not found, creating fallback");
-        window.initUrlHandler = function () {
-          console.log("🔄 Fallback initUrlHandler called");
-          return true;
-        };
-      }
-
-      // Verify all shims are in place
-      console.log(
-        "🔍 Component verification complete. Shims in place for missing components."
-      );
-
-      // Make sure DOM has fully loaded
-      window.addEventListener("load", function () {
-        console.log("DOM and all resources fully loaded");
-
-        // Verify all required components are available
-        if (window.initMap && window.initRouting && window.initDebugTools) {
-          console.log("✅ All required components available");
-        } else {
-          console.error("❌ Missing required components!");
-          if (!window.initMap) console.error("Missing: initMap");
-          if (!window.initRouting) console.error("Missing: initRouting");
-          if (!window.initDebugTools) console.error("Missing: initDebugTools");
-        }
-
-        // Check FormatUtils
-        if (window.FormatUtils) {
-          console.log("✅ FormatUtils loaded");
-        } else {
-          console.error("❌ FormatUtils not available!");
-        }
-      });
-    </script>
+    <script src="config.js"></script>
+    <script src="utils.js"></script>
+    <script src="map.js"></script>
+    <script src="routing.js"></script>
+    <script src="debug.js"></script>
+    <script src="app.js"></script>
   </body>
 </html>
