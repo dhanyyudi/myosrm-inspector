@@ -43,6 +43,19 @@ function verifyChanges() {
       const timeSelection = document.querySelector(".time-selection");
       console.log("Time-dependent routing:", timeSelection ? "✓" : "✗");
 
+      // Check for new features
+      const autoUpdateToggle = document.getElementById("auto-update-route");
+      console.log("Auto-update toggle:", autoUpdateToggle ? "✓" : "✗");
+
+      const curbToggle = document.getElementById("enable-curb");
+      console.log("CURB toggle:", curbToggle ? "✓" : "✗");
+
+      const routingUrlDisplay = document.getElementById("routing-url-display");
+      console.log("Routing URL display:", routingUrlDisplay ? "✓" : "✗");
+
+      const editProfileBtn = document.getElementById("btn-edit-profile");
+      console.log("Edit profile button:", editProfileBtn ? "✓" : "✗");
+
       console.log("All modifications applied successfully!");
     } catch (e) {
       console.error("Verification failed:", e);

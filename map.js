@@ -119,7 +119,7 @@ function handleMapClick(e) {
 }
 
 /**
- * Add marker for start point
+ * Add marker for start point with dragging capability and better icon
  */
 function addStartMarker(latlng) {
   // Remove old marker if exists
@@ -131,10 +131,35 @@ function addStartMarker(latlng) {
   markerStart = L.marker(latlng, {
     icon: L.divIcon({
       className: "custom-div-icon start-icon",
-      html: `<div style="background-color:${CONFIG.routing.colors.driving}; width:12px; height:12px; border-radius:50%; border: 2px solid white;"></div>`,
-      iconSize: [12, 12],
-      iconAnchor: [6, 6],
+      html: `<div style="background-color:${CONFIG.routing.colors.driving}; width:24px; height:24px; border-radius:50%; border: 3px solid white; box-shadow: 0 1px 5px rgba(0,0,0,0.4); position: relative;">
+              <i class="fa fa-map-marker-alt" style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); color: white; font-size: 14px;"></i>
+            </div>`,
+      iconSize: [24, 24],
+      iconAnchor: [12, 12],
     }),
+    draggable: true, // Make marker draggable
+  });
+
+  // Add drag end event
+  markerStart.on("dragend", function (event) {
+    const marker = event.target;
+    const position = marker.getLatLng();
+    const lngLat = [position.lng, position.lat];
+    const coordString = formatCoordinateString(lngLat);
+
+    // Update input field
+    document.getElementById("start-point").value = coordString;
+
+    // Update waypoints list
+    updateWaypointsList();
+
+    // Auto-refresh route if desired
+    if (
+      document.getElementById("auto-update-route") &&
+      document.getElementById("auto-update-route").checked
+    ) {
+      findRouteWithMultipleWaypoints();
+    }
   });
 
   // Add marker to layer
@@ -142,7 +167,7 @@ function addStartMarker(latlng) {
 }
 
 /**
- * Add marker for end point
+ * Add marker for end point with dragging capability and better icon
  */
 function addEndMarker(latlng) {
   // Remove old marker if exists
@@ -154,10 +179,35 @@ function addEndMarker(latlng) {
   markerEnd = L.marker(latlng, {
     icon: L.divIcon({
       className: "custom-div-icon end-icon",
-      html: `<div style="background-color:#e74c3c; width:12px; height:12px; border-radius:50%; border: 2px solid white;"></div>`,
-      iconSize: [12, 12],
-      iconAnchor: [6, 6],
+      html: `<div style="background-color:#e74c3c; width:24px; height:24px; border-radius:50%; border: 3px solid white; box-shadow: 0 1px 5px rgba(0,0,0,0.4); position: relative;">
+              <i class="fa fa-flag" style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); color: white; font-size: 14px;"></i>
+            </div>`,
+      iconSize: [24, 24],
+      iconAnchor: [12, 12],
     }),
+    draggable: true, // Make marker draggable
+  });
+
+  // Add drag end event
+  markerEnd.on("dragend", function (event) {
+    const marker = event.target;
+    const position = marker.getLatLng();
+    const lngLat = [position.lng, position.lat];
+    const coordString = formatCoordinateString(lngLat);
+
+    // Update input field
+    document.getElementById("end-point").value = coordString;
+
+    // Update waypoints list
+    updateWaypointsList();
+
+    // Auto-refresh route if desired
+    if (
+      document.getElementById("auto-update-route") &&
+      document.getElementById("auto-update-route").checked
+    ) {
+      findRouteWithMultipleWaypoints();
+    }
   });
 
   // Add marker to layer
@@ -165,7 +215,7 @@ function addEndMarker(latlng) {
 }
 
 /**
- * Add a marker for via points
+ * Add a marker for via points with dragging capability and better icon
  */
 function addViaMarker(latlng, inputId) {
   // Extract index from input ID (like "via-point-1")
@@ -192,10 +242,35 @@ function addViaMarker(latlng, inputId) {
     markerId: markerId, // Store ID in marker options for easier retrieval
     icon: L.divIcon({
       className: "custom-div-icon via-icon",
-      html: `<div style="background-color:#f39c12; width:12px; height:12px; border-radius:50%; border: 2px solid white;"></div>`,
-      iconSize: [12, 12],
-      iconAnchor: [6, 6],
+      html: `<div style="background-color:#f39c12; width:24px; height:24px; border-radius:50%; border: 3px solid white; box-shadow: 0 1px 5px rgba(0,0,0,0.4); position: relative;">
+              <i class="fa fa-map-pin" style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); color: white; font-size: 14px;"></i>
+            </div>`,
+      iconSize: [24, 24],
+      iconAnchor: [12, 12],
     }),
+    draggable: true, // Make marker draggable
+  });
+
+  // Add drag end event
+  viaMarker.on("dragend", function (event) {
+    const marker = event.target;
+    const position = marker.getLatLng();
+    const lngLat = [position.lng, position.lat];
+    const coordString = formatCoordinateString(lngLat);
+
+    // Update the corresponding input field
+    document.getElementById(inputId).value = coordString;
+
+    // Update waypoints list
+    updateWaypointsList();
+
+    // Auto-refresh route if desired
+    if (
+      document.getElementById("auto-update-route") &&
+      document.getElementById("auto-update-route").checked
+    ) {
+      findRouteWithMultipleWaypoints();
+    }
   });
 
   // Add to waypoints layer
@@ -207,7 +282,7 @@ function addViaMarker(latlng, inputId) {
 }
 
 /**
- * Display route on map
+ * Display route on map with multi-color segments for different legs
  */
 function displayRoute(routeData, profile = "driving") {
   clearRoute();
@@ -215,39 +290,42 @@ function displayRoute(routeData, profile = "driving") {
   if (!routeData || !routeData.routes || routeData.routes.length === 0) return;
 
   const route = routeData.routes[0];
-  const geometry = route.geometry;
 
-  // Get color based on profile
-  const color = CONFIG.routing.colors[profile] || CONFIG.routing.colors.driving;
+  // Get base color based on profile
+  const baseColor =
+    CONFIG.routing.colors[profile] || CONFIG.routing.colors.driving;
 
-  // Add main polyline
-  const routeLine = L.geoJSON(geometry, {
-    style: {
-      color: color,
-      weight: CONFIG.routing.lineWeight,
-      opacity: CONFIG.routing.lineOpacity,
-      lineJoin: "round",
-      lineCap: "round",
-    },
-  });
+  // If the route has legs, display each leg with a different color
+  if (route.legs && route.legs.length > 1) {
+    // Generate a color palette based on the number of legs
+    const colors = generateColorPalette(baseColor, route.legs.length);
 
-  mapLayers.route.addLayer(routeLine);
-  routeLines.push(routeLine);
+    // Add each leg with its own color
+    route.legs.forEach((leg, index) => {
+      if (!leg.geometry) return;
 
-  // Zoom to route
-  map.fitBounds(routeLine.getBounds(), {
-    padding: [50, 50],
-  });
+      const legColor = colors[index % colors.length];
 
-  // Add hover highlight if there are steps
-  if (route.legs && route.legs.length > 0) {
-    route.legs.forEach((leg) => {
+      const legLine = L.geoJSON(leg.geometry, {
+        style: {
+          color: legColor,
+          weight: CONFIG.routing.lineWeight,
+          opacity: CONFIG.routing.lineOpacity,
+          lineJoin: "round",
+          lineCap: "round",
+        },
+      });
+
+      mapLayers.route.addLayer(legLine);
+      routeLines.push(legLine);
+
+      // Add hover highlight for this leg's steps
       if (leg.steps) {
         leg.steps.forEach((step) => {
           if (step.geometry) {
             const stepLine = L.geoJSON(step.geometry, {
               style: {
-                color: color,
+                color: legColor,
                 weight: CONFIG.routing.lineWeight + 2,
                 opacity: 0,
                 lineJoin: "round",
@@ -274,9 +352,178 @@ function displayRoute(routeData, profile = "driving") {
         });
       }
     });
+
+    // Add a legend to show which color corresponds to which segment
+    addRouteLegend(colors, waypointsList);
+  } else {
+    // Use the default single color for routes with one or no legs
+    const routeLine = L.geoJSON(route.geometry, {
+      style: {
+        color: baseColor,
+        weight: CONFIG.routing.lineWeight,
+        opacity: CONFIG.routing.lineOpacity,
+        lineJoin: "round",
+        lineCap: "round",
+      },
+    });
+
+    mapLayers.route.addLayer(routeLine);
+    routeLines.push(routeLine);
+
+    // Add hover highlight if there are steps (same as original code)
+    if (route.legs && route.legs.length > 0) {
+      route.legs.forEach((leg) => {
+        if (leg.steps) {
+          leg.steps.forEach((step) => {
+            if (step.geometry) {
+              const stepLine = L.geoJSON(step.geometry, {
+                style: {
+                  color: baseColor,
+                  weight: CONFIG.routing.lineWeight + 2,
+                  opacity: 0,
+                  lineJoin: "round",
+                  lineCap: "round",
+                },
+              });
+
+              // Add hover effect
+              stepLine.on("mouseover", function () {
+                this.setStyle({
+                  opacity: CONFIG.routing.highlightOpacity,
+                });
+              });
+
+              stepLine.on("mouseout", function () {
+                this.setStyle({
+                  opacity: 0,
+                });
+              });
+
+              mapLayers.route.addLayer(stepLine);
+              routeLines.push(stepLine);
+            }
+          });
+        }
+      });
+    }
   }
 
-  return routeLine;
+  // Zoom to route bounds
+  const allRouteLines = L.featureGroup(routeLines);
+  map.fitBounds(allRouteLines.getBounds(), {
+    padding: [50, 50],
+  });
+
+  return routeLines;
+}
+
+/**
+ * Generate a color palette based on a base color
+ * @param {string} baseColor - The base color (hex)
+ * @param {number} count - Number of colors needed
+ * @returns {Array} Array of color hex codes
+ */
+function generateColorPalette(baseColor, count) {
+  if (count <= 1) return [baseColor];
+
+  // Define set of distinct colors for segments
+  const predefinedColors = [
+    "#3498db", // Blue
+    "#e74c3c", // Red
+    "#2ecc71", // Green
+    "#9b59b6", // Purple
+    "#f39c12", // Orange
+    "#1abc9c", // Turquoise
+    "#d35400", // Pumpkin
+    "#34495e", // Dark Blue
+    "#16a085", // Green Sea
+    "#c0392b", // Dark Red
+  ];
+
+  // If we have enough predefined colors, use them
+  if (count <= predefinedColors.length) {
+    return predefinedColors.slice(0, count);
+  }
+
+  // Otherwise, generate colors with varying hue
+  const colors = [];
+  for (let i = 0; i < count; i++) {
+    const hue = ((i * 360) / count) % 360;
+    colors.push(`hsl(${hue}, 70%, 50%)`);
+  }
+
+  return colors;
+}
+
+/**
+ * Add a route legend showing the color of each segment
+ * @param {Array} colors - Array of colors used for segments
+ * @param {Array} waypoints - Array of waypoints
+ */
+function addRouteLegend(colors, waypoints) {
+  // Remove existing legend if any
+  const existingLegend = document.getElementById("route-color-legend");
+  if (existingLegend) {
+    existingLegend.remove();
+  }
+
+  // Create a new legend div
+  const legend = document.createElement("div");
+  legend.id = "route-color-legend";
+  legend.className = "route-legend";
+
+  // Add a header
+  const header = document.createElement("div");
+  header.className = "legend-header";
+  header.textContent = "Route Segments";
+  legend.appendChild(header);
+
+  // Add a legend item for each segment
+  for (let i = 0; i < colors.length && i < waypoints.length - 1; i++) {
+    const item = document.createElement("div");
+    item.className = "legend-item";
+
+    const colorBox = document.createElement("div");
+    colorBox.className = "legend-color";
+    colorBox.style.backgroundColor = colors[i];
+
+    const label = document.createElement("div");
+    label.className = "legend-label";
+
+    // Format waypoint names/coordinates for better readability
+    const startCoord = shortenCoordinate(waypoints[i]);
+    const endCoord = shortenCoordinate(waypoints[i + 1]);
+    label.textContent = `Waypoint ${i + 1} → ${i + 2}`;
+
+    item.appendChild(colorBox);
+    item.appendChild(label);
+    legend.appendChild(item);
+  }
+
+  // Add the legend to the map
+  document.getElementById("map-container").appendChild(legend);
+}
+
+/**
+ * Shorten coordinate for display purposes
+ * @param {string} coordStr - Coordinate string "lng,lat"
+ * @returns {string} Shortened coordinate
+ */
+function shortenCoordinate(coordStr) {
+  const coords = parseCoordinateString(coordStr);
+  if (!coords) return "Unknown";
+
+  return `${coords[1].toFixed(3)},${coords[0].toFixed(3)}`;
+}
+
+/**
+ * Clear route legend when clearing routes
+ */
+function clearRouteLegend() {
+  const legend = document.getElementById("route-color-legend");
+  if (legend) {
+    legend.remove();
+  }
 }
 
 /**
@@ -287,6 +534,9 @@ function clearRoute() {
     mapLayers.route.removeLayer(line);
   });
   routeLines = [];
+
+  // Also clear the legend
+  clearRouteLegend();
 }
 
 /**

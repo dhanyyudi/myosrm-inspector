@@ -20,6 +20,12 @@ const CONFIG = {
       driving: "#3498db",
       walking: "#2ecc71",
       cycling: "#9b59b6",
+      van: "#f39c12",
+      van_2022: "#e74c3c",
+      van_scpa: "#1abc9c",
+      truck_staticth: "#8e44ad", // Ungu untuk truck_staticth
+      car: "#27ae60",
+      // Add more profile-specific colors as needed
     },
 
     lineWeight: 6,
@@ -31,7 +37,7 @@ const CONFIG = {
   debug: {
     // Node options
     nodes: {
-      color: "#e84393",
+      color: "#f72585", // Updated to match modern UI color
       radius: 4,
       fillOpacity: 0.8,
       weight: 1,
@@ -39,14 +45,14 @@ const CONFIG = {
 
     // Edge options
     edges: {
-      color: "#00b894",
+      color: "#4cc9f0", // Updated to match modern UI color
       weight: 3,
       opacity: 0.7,
     },
 
     // Cell options
     cells: {
-      color: "#fdcb6e",
+      color: "#f8961e", // Updated to match modern UI color
       fillOpacity: 0.2,
       weight: 1,
       opacity: 0.7,
@@ -54,19 +60,19 @@ const CONFIG = {
 
     // Turn options
     turns: {
-      color: "#e17055",
+      color: "#43aa8b", // Updated to match modern UI color
       iconSize: [20, 20],
     },
 
     // Speed options
     speed: {
-      color: "#00cec9",
+      color: "#277da1", // Updated to match modern UI color
       fontSize: 10,
     },
 
     // Road names options
     names: {
-      color: "#6c5ce7",
+      color: "#9e0059", // Updated to match modern UI color
       fontSize: 10,
     },
 
