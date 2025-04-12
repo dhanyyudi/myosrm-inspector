@@ -12,7 +12,6 @@ OSRM Inspector is a modern frontend application for examining, testing, and visu
 - **Multiple Profiles**: Support for various routing profiles (driving, walking, cycling, truck, etc.)
 - **Debug Visualization**: Display nodes, edges, cells, turns, speed, and road names
 - **Detailed Route Info**: Display distance, duration, turn-by-turn instructions, and average speed
-- **Time-Dependent Routing**: Support for time-based routing (depending on traffic data availability)
 - **Import/Export**: Import waypoints from CSV files and copy/paste routing URLs
 - **Modern UI**: Responsive and intuitive user interface with a modern blue theme
 
@@ -48,24 +47,24 @@ docker run -d -p 5000:5000 -v "${PWD}:/data" --name osrm-backend osrm/osrm-backe
 
 ```bash
 # Pull the latest image
-docker pull yourusername/osrm-inspector:latest
+docker pull dhanyyudi/myosrm-inspector:latest
 
 # Run the container
-docker run -d -p 9966:80 --name osrm-inspector yourusername/osrm-inspector:latest
+docker run -d -p 9966:80 --name myosrm-inspector dhanyyudi/myosrm-inspector:latest
 ```
 
 #### Building and Running from Source
 
 ```bash
 # Clone the repository
-git clone https://github.com/yourusername/osrm-inspector.git
-cd osrm-inspector
+git clone https://github.com/dhanyyudi/myosrm-inspector.git
+cd myosrm-inspector
 
 # Build the Docker image
-docker build -t osrm-inspector .
+docker build -t myosrm-inspector .
 
 # Run the container
-docker run -d -p 9966:80 --name osrm-inspector osrm-inspector
+docker run -d -p 9966:80 --name myosrm-inspector myosrm-inspector
 ```
 
 ### Configuration
@@ -77,7 +76,7 @@ To connect OSRM Inspector to your OSRM backend, you can use one of the following
 ```bash
 docker run -d -p 9966:80 \
   -e OSRM_BACKEND_URL=http://your-osrm-host:5000 \
-  --name osrm-inspector osrm-inspector
+  --name myosrm-inspector myosrm-inspector
 ```
 
 #### Using Configuration File
@@ -100,8 +99,97 @@ const CONFIG = {
 ```bash
 docker run -d -p 9966:80 \
   -v /path/to/your/config.js:/usr/share/nginx/html/config.js \
-  --name osrm-inspector osrm-inspector
+  --name myosrm-inspector myosrm-inspector
 ```
+
+#### Using Docker Compose
+
+Docker Compose provides an easier way to manage both the OSRM backend and the OSRM Inspector frontend together.
+
+1. Create a `docker-compose.yml` file:
+
+```yaml
+version: "3"
+
+services:
+  osrm-backend:
+    image: osrm/osrm-backend
+    container_name: osrm-backend
+    volumes:
+      - ./osrm-data:/data
+    ports:
+      - "5000:5000"
+    command: osrm-routed --algorithm mld /data/indonesia-latest.osrm
+    restart: unless-stopped
+
+  myosrm-inspector:
+    image: dhanyyudi/myosrm-inspector:latest
+    container_name: myosrm-inspector
+    volumes:
+      - ./config.js:/usr/share/nginx/html/config.js
+      - ./nginx.conf:/etc/nginx/conf.d/default.conf
+    ports:
+      - "9966:80"
+    environment:
+      - OSRM_BACKEND_URL=http://osrm-backend:5000
+    depends_on:
+      - osrm-backend
+    restart: unless-stopped
+```
+
+2. Create a custom Nginx configuration (`nginx.conf`):
+
+```nginx
+server {
+    listen 80;
+    server_name localhost;
+    root /usr/share/nginx/html;
+    index index.html;
+
+    # Enable gzip compression
+    gzip on;
+    gzip_types text/plain text/css application/javascript application/json;
+
+    # Cache static files
+    location ~* \.(js|css|png|jpg|jpeg|gif|ico)$ {
+        expires 30d;
+        add_header Cache-Control "public, no-transform";
+    }
+
+    # Proxy requests to OSRM backend
+    location /api/ {
+        proxy_pass http://osrm-backend:5000/;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+
+    # Handle HTML files
+    location / {
+        try_files $uri $uri/ /index.html;
+    }
+
+    # Error handling
+    error_page 500 502 503 504 /50x.html;
+    location = /50x.html {
+        root /usr/share/nginx/html;
+    }
+}
+```
+
+3. Start the services:
+
+```bash
+docker-compose up -d
+```
+
+This setup configures:
+
+- An OSRM backend service for route calculations
+- The OSRM Inspector frontend with Nginx
+- Proper proxy configuration to allow the frontend to communicate with the backend
+- Caching and compression for better performance
 
 ### Accessing the Application
 
@@ -134,18 +222,13 @@ http://localhost:9966
 
 ### Advanced Features
 
-1. **Time-Dependent Routing**:
-
-   - Enable "Enable time-dependent routing"
-   - Select a departure time using the date-time picker
-
-2. **Importing Waypoints**:
+1. **Importing Waypoints**:
 
    - Click the "Import CSV/TXT" button
    - Select a file with format: (latitude,longitude) or (longitude,latitude)
      ![OSRM Inspector Waypoints Import](./images/import-waypoints.png)
 
-3. **Debug Visualization**:
+2. **Debug Visualization**:
 
    - Use the "Debug & Visualization" panel to display road network elements:
      - Nodes: Display network nodes
@@ -156,7 +239,7 @@ http://localhost:9966
      - Road Names: Display road names
        ![OSRM Inspector Debug](./images/interactive-debug.png)
 
-4. **Copy/Load Routing URL**:
+3. **Copy/Load Routing URL**:
    - After a route is generated, the routing URL will be displayed in the "Route Information" panel
    - Use the "Copy" button to copy the URL
    - The "Load URL" button allows loading a route from an OSRM URL
@@ -165,7 +248,7 @@ http://localhost:9966
 ## 🧩 Code Structure
 
 ```
-osrm-inspector/
+myosrm-inspector/
 ├── app.js                 # Application entry point
 ├── config.js              # Application configuration
 ├── debug.js               # Debug visualization
