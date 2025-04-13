@@ -6,6 +6,7 @@ document.addEventListener("DOMContentLoaded", function () {
   initMap();
   initRouting();
   initDebugTools();
+  initRoutingArea(); // Tambahkan inisialisasi routing area
 
   // Log aplikasi telah dimuat
   console.log("OSRM Inspector loaded successfully");
@@ -55,6 +56,20 @@ function verifyChanges() {
 
       const editProfileBtn = document.getElementById("btn-edit-profile");
       console.log("Edit profile button:", editProfileBtn ? "✓" : "✗");
+
+      // Check routing area functionality
+      const loadRoutingAreaBtn = document.getElementById(
+        "btn-load-routing-area"
+      );
+      const toggleRoutingAreaBtn = document.getElementById(
+        "btn-toggle-routing-area"
+      );
+
+      console.log("Routing area load button:", loadRoutingAreaBtn ? "✓" : "✗");
+      console.log(
+        "Routing area toggle button:",
+        toggleRoutingAreaBtn ? "✓" : "✗"
+      );
 
       console.log("All modifications applied successfully!");
     } catch (e) {

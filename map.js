@@ -7,6 +7,7 @@ let map;
 let mapLayers = {
   route: new L.LayerGroup(),
   waypoints: new L.LayerGroup(),
+  routingArea: new L.LayerGroup(),
   debug: {
     nodes: new L.LayerGroup(),
     edges: new L.LayerGroup(),
@@ -46,6 +47,7 @@ function initMap() {
   // Add all layers to map
   mapLayers.route.addTo(map);
   mapLayers.waypoints.addTo(map);
+  mapLayers.routingArea.addTo(map);
 
   // Add debug layers
   Object.values(mapLayers.debug).forEach((layer) => layer.addTo(map));

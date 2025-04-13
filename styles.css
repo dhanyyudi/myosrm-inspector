@@ -1175,3 +1175,32 @@ body {
     align-self: flex-start;
   }
 }
+
+/* Routing area info display */
+.routing-area-info {
+  position: absolute;
+  bottom: 16px;
+  left: 16px;
+  background: rgba(255, 255, 255, 0.9);
+  padding: 8px 12px;
+  border-radius: var(--border-radius);
+  font-size: var(--font-size-sm);
+  box-shadow: var(--shadow);
+  z-index: 1000;
+  color: var(--primary-color);
+  display: flex;
+  align-items: center;
+  max-width: 200px;
+  pointer-events: none;
+  border-left: 3px solid var(--primary-color);
+}
+
+.routing-area-info i {
+  margin-right: 8px;
+  color: var(--primary-color);
+}
+
+/* Style khusus untuk GeoJSON layer agar tidak menangkap event mouse */
+.routing-area-geojson {
+  pointer-events: none !important; /* Ini penting! Mencegah layer menangkap event */
+}

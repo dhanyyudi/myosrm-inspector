@@ -138,6 +138,33 @@
                       <i class="fa fa-road"></i> Road Names
                     </button>
                   </div>
+                  <div class="debug-group">
+                    <h3>Routing Area</h3>
+                    <div class="toggle-buttons">
+                      <button id="btn-load-routing-area" class="btn btn-toggle">
+                        <i class="fa fa-map"></i> Load GeoJSON
+                      </button>
+                      <button
+                        id="btn-upload-routing-area"
+                        class="btn btn-toggle"
+                      >
+                        <i class="fa fa-upload"></i> Upload GeoJSON
+                      </button>
+                      <button
+                        id="btn-toggle-routing-area"
+                        class="btn btn-toggle active"
+                      >
+                        <i class="fa fa-eye"></i> Show/Hide
+                      </button>
+                    </div>
+                    <!-- Input file tersembunyi -->
+                    <input
+                      type="file"
+                      id="routing-area-file-input"
+                      accept=".geojson,.json"
+                      style="display: none"
+                    />
+                  </div>
                 </div>
               </div>
 
@@ -191,6 +218,18 @@
         <!-- Coordinates Display -->
         <div id="coordinates-display"></div>
 
+        <div
+          id="routing-area-info"
+          class="routing-area-info"
+          style="display: none"
+        >
+          <i class="fa fa-map"></i>
+          <span
+            >Routing Area:
+            <strong id="routing-area-name">Thailand</strong></span
+          >
+        </div>
+
         <!-- Loading Indicator -->
         <div id="loading-indicator">
           <div class="spinner"></div>
@@ -209,6 +248,7 @@
     <script src="map.js"></script>
     <script src="routing.js"></script>
     <script src="debug.js"></script>
+    <script src="routing-area.js"></script>
     <script src="app.js"></script>
   </body>
 </html>
